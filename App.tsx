@@ -541,13 +541,11 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Main Layout */}
-      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 pb-20 md:pb-0">
-        
-        {/* Left Sidebar: Controls */}
-        <div className="lg:col-span-4 flex flex-col gap-4 md:gap-6">
-           <ReferenceUploader onImageSelected={handleImageChange} />
+      {/* Main Layout - Three Column */}
+      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 pb-20 md:pb-0">
 
+        {/* Left Sidebar: Settings Parameters */}
+        <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
            {/* Settings Panel */}
            <div className="bg-white border-4 border-black p-4 rounded-lg pop-shadow space-y-6">
              
@@ -758,6 +756,30 @@ const App: React.FC = () => {
              </div>
 
            </div>
+        </div>
+
+        {/* Middle Column: Sticker Grid */}
+        <div className="lg:col-span-6">
+           <StickerGrid
+             generatedStickers={Object.keys(generatedStickers).reduce((acc, key) => {
+               if (key.endsWith(`_${currentStyle}`)) {
+                  const promptId = key.replace(`_${currentStyle}`, '');
+                  acc[promptId] = generatedStickers[key];
+               }
+               return acc;
+             }, {} as Record<string, GeneratedSticker>)}
+             prompts={activePrompts}
+             onGenerate={handleManualGenerate}
+             onStickerClick={handleStickerClick}
+             isProcessing={globalLoading}
+             hasApiKey={true}
+             hasReference={!!referenceImage}
+           />
+        </div>
+
+        {/* Right Sidebar: Upload & Actions */}
+        <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
+           <ReferenceUploader onImageSelected={handleImageChange} />
 
            {/* Actions */}
            <div className="bg-white border-4 border-black p-4 rounded-lg pop-shadow static lg:sticky lg:top-4 z-30">
@@ -785,7 +807,7 @@ const App: React.FC = () => {
                   activePrompts.length === 0
                 }
                  className={`
-                   w-full py-3 md:py-4 text-lg md:text-xl font-black uppercase tracking-wider border-4 border-black rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+                   w-full py-3 text-sm md:text-base font-black uppercase border-4 border-black rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
                    active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all
                    ${(
                     !referenceImage ||
@@ -796,36 +818,43 @@ const App: React.FC = () => {
                  `}
                >
                  {generationMode === 'comic' ? (
-                   selectedEmotion ? `📖 生成四格漫画 (${selectedEmotion})` : '📖 请先选择表情'
+                   selectedEmotion ? (
+                     <>
+                       <div>📖 四格漫画</div>
+                       <div className="text-xs mt-1">{selectedEmotion}</div>
+                     </>
+                   ) : '📖 请先选择表情'
                  ) : generationMode === 'custom' ? (
                    selectedCustomEmotions.length === targetCount
-                     ? `✨ 生成自定义表情包 (${targetCount}张)`
-                     : `✏️ 请选择 ${targetCount} 个表情 (已选${selectedCustomEmotions.length})`
+                     ? (
+                       <>
+                         <div>✨ 生成表情包</div>
+                         <div className="text-xs mt-1">{targetCount}张自定义</div>
+                       </>
+                     )
+                     : (
+                       <>
+                         <div>✏️ 请选择表情</div>
+                         <div className="text-xs mt-1">已选{selectedCustomEmotions.length}/{targetCount}</div>
+                       </>
+                     )
                  ) : (
-                   `✨ 开始生成 (${activePrompts.length}张)`
+                   <>
+                     <div>✨ 开始生成</div>
+                     <div className="text-xs mt-1">{activePrompts.length}张表情</div>
+                   </>
                  )}
                </button>
              )}
 
-             <div className="flex gap-2 mt-4">
-                {generationMode === 'random' && (
-                <button
-                  onClick={handleShuffle}
-                  className="flex-1 py-2 font-bold text-xs md:text-sm border-2 border-black rounded bg-white hover:bg-gray-100 text-black transition-colors"
-                >
-                  🎲 换一批
-                </button>
-                )}
-                {/* Desktop: Zip Download, Mobile: Hidden */}
-                {hasAnySuccessInView && (
-                  <button
-                    onClick={handleDownloadAll}
-                    className="flex-1 py-2 font-bold text-xs md:text-sm border-2 border-black rounded bg-green-400 hover:bg-green-500 text-black transition-colors hidden md:block"
-                  >
-                    📥 打包 ZIP
-                  </button>
-                )}
-             </div>
+             {hasAnySuccessInView && (
+               <button
+                 onClick={handleDownloadAll}
+                 className="w-full mt-4 py-2 font-bold text-sm border-2 border-black rounded bg-green-400 hover:bg-green-500 text-black transition-colors"
+               >
+                 📥 打包下载 ZIP
+               </button>
+             )}
 
              {hasAnySuccessInView && (
                <div className="mt-4 pt-4 border-t-2 border-dashed border-gray-300">
@@ -838,25 +867,6 @@ const App: React.FC = () => {
                </div>
              )}
            </div>
-        </div>
-
-        {/* Right Content: Grid */}
-        <div className="lg:col-span-8">
-           <StickerGrid 
-             generatedStickers={Object.keys(generatedStickers).reduce((acc, key) => {
-               if (key.endsWith(`_${currentStyle}`)) {
-                  const promptId = key.replace(`_${currentStyle}`, ''); 
-                  acc[promptId] = generatedStickers[key];
-               }
-               return acc;
-             }, {} as Record<string, GeneratedSticker>)}
-             prompts={activePrompts}
-             onGenerate={handleManualGenerate}
-             onStickerClick={handleStickerClick}
-             isProcessing={globalLoading}
-             hasApiKey={true}
-             hasReference={!!referenceImage}
-           />
         </div>
       </main>
 

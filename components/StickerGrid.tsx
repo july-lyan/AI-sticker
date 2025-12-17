@@ -49,9 +49,9 @@ const StickerGrid: React.FC<StickerGridProps> = ({
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
-      {/* 2 columns on mobile, 3 on md, 4 on lg */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 p-2 md:p-4">
+    <div className="w-full">
+      {/* 2 columns on mobile, 3 on md and lg */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
         {prompts.map((sticker) => {
           const state = generatedStickers[sticker.id] || { status: GenerationStatus.IDLE, url: '', id: sticker.id };
           const isSuccess = state.status === GenerationStatus.SUCCESS;
