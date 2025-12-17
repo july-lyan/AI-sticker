@@ -1,0 +1,5 @@
+{
+  "name": "表情包生成器支持宠物",
+  "description": "Generate a custom set of 20 pop-art style stickers based on a character reference image using Gemini 3 Pro. (Chinese Version)",
+  "requestFramePermissions": []
+}
