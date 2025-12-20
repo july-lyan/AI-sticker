@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import JSZip from 'jszip';
 import ReferenceUploader from './components/ReferenceUploader';
 import StickerGrid from './components/StickerGrid';
+import FreeQuotaDisplay from './components/FreeQuotaDisplay';
 import { GeneratedSticker, GenerationStatus, StickerCategory, StickerPrompt, StickerStyleId, GenerationMode } from './types';
 import { generateStickerImage, generateStickerGrid, analyzeCharacter } from './services/geminiService';
 import { sliceGrid2x2, removeBackgroundSmart, generateMarketingSheet } from './utils/imageProcessor';
@@ -549,6 +550,9 @@ const App: React.FC = () => {
 
         {/* Left Sidebar: Settings Parameters */}
         <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
+           {/* Free Quota Display (only in free mode) */}
+           {deviceId && <FreeQuotaDisplay deviceId={deviceId} />}
+
            {/* Settings Panel */}
            <div className="bg-white border-4 border-black p-4 rounded-lg pop-shadow space-y-6">
              
