@@ -1,0 +1,49 @@
+import { z } from 'zod';
+
+export const StyleIdSchema = z.enum(['popart', 'manga', 'game', 'ancient', '3d', 'pixel', 'cyberpunk', 'papercut']);
+export type StyleId = z.infer<typeof StyleIdSchema>;
+
+type StyleDef = { id: StyleId; description: string };
+
+export const STYLES: Record<StyleId, StyleDef> = {
+  popart: {
+    id: 'popart',
+    description:
+      'CRITICAL CHARACTER PRESERVATION: MUST preserve 100% of original features: exact hair style/color, facial features, clothing style, accessories (glasses/earrings/necklace/watch), beauty marks, bandaids, nail polish, ALL details from reference image. ONLY change art style, NOT character features. | STYLE: Pure 2D Pop Art ONLY. MUST have: 1) Very thick bold black outlines (6-8px), 2) Flat solid colors with NO gradients or soft shading, 3) Ben-Day halftone dot patterns for skin/hair (visible red/blue/yellow/cyan dots), 4) Comic book speech bubble with text, 5) High contrast primary colors (red/yellow/blue/black/white), 6) Roy Lichtenstein aesthetic with dramatic expressions. STRICTLY AVOID: any 3D rendering, soft shading, realistic lighting, smooth gradients, 3D Pixar style, nano or banana aesthetic. Pure flat 2D graphic design only.'
+  },
+  manga: {
+    id: 'manga',
+    description:
+      'CRITICAL CHARACTER PRESERVATION: MUST preserve 100% of original features: exact hair style/color, facial features, clothing style, accessories (glasses/earrings/necklace/watch), beauty marks, bandaids, nail polish, ALL details from reference image. ONLY change art style, NOT character features. | STYLE: Pure 2D hand-drawn Japanese anime ONLY. MUST have: 1) Very large sparkling eyes (占脸部1/3), 2) Thin clean ink linework, 3) Cel-shaded flat colors with minimal gradients, 4) Typical anime hair with detailed strands and highlights, 5) Simplified nose (just small dots or lines), 6) Kawaii expressions, 7) Pastel color palette. Reference: Studio Ghibli, Kyoto Animation. STRICTLY AVOID: any 3D rendering, 3D Pixar style, western cartoon style, nano or banana aesthetic.'
+  },
+  game: {
+    id: 'game',
+    description:
+      'CRITICAL CHARACTER PRESERVATION: MUST preserve 100% of original features: exact hair style/color, facial features, clothing style (can be enhanced with epic armor/accessories but keep base style), accessories (glasses/earrings/necklace/watch), beauty marks, bandaids, nail polish, ALL details from reference image. ONLY add epic game art treatment, NOT change character identity. | STYLE: EPIC semi-realistic game character splash art. MUST have: 1) DETAILED facial features with semi-realistic proportions (between realistic and stylized), 2) DRAMATIC rim lighting and golden/magical glow effects, 3) INTRICATE fantasy/epic costume details with ornate armor pieces and flowing elements, 4) HEROIC dynamic action poses with movement, 5) Abundant particle effects (sparkles/magic auras/energy streams), 6) Rich detailed textures (ornate fabric/shining metal/decorated leather), 7) Cinematic depth of field with blurred epic backgrounds, 8) Vibrant saturated fantasy colors with warm lighting. Reference: Honor of Kings, League of Legends splash art, Mobile Legends. DISTINCT FROM pure 3D style: Must have epic fantasy elements, ornate decorations, dynamic action poses, rich particle effects, and semi-realistic (not cute chibi) proportions. Much more realistic and detailed than cute cartoon styles.'
+  },
+  ancient: {
+    id: 'ancient',
+    description:
+      'CRITICAL CHARACTER PRESERVATION: MUST preserve 100% of original features: exact hair style/color (can add traditional hair ornaments 发簪/发冠), facial features, beauty marks, bandaids, accessories. CLOTHING ADAPTATION: Transform modern clothing into elegant traditional Hanfu with flowing sleeves while keeping similar color scheme and details from reference. ONLY adapt to ancient Chinese aesthetic, NOT change character identity. | STYLE: Traditional Chinese ink painting ONLY. MUST have: 1) Visible ink brush strokes and watercolor bleeding effects, 2) Monochrome or limited color palette (black ink + light washes), 3) Traditional Hanfu clothing with flowing sleeves and elegant layers, 4) Elegant hair ornaments (发簪/发冠) integrated naturally, 5) Soft edges and atmospheric effects, 6) Minimalist background with ink wash mountains/clouds, 7) Calligraphy-style text. Reference: Song Dynasty paintings. STRICTLY AVOID: any 3D rendering, solid flat colors, modern elements, 3D Pixar style, nano or banana aesthetic.'
+  },
+  '3d': {
+    id: '3d',
+    description:
+      'CRITICAL CHARACTER PRESERVATION: MUST preserve 100% of original features: exact hair style/color, facial features, clothing style, accessories (glasses/earrings/necklace/watch), beauty marks, bandaids, nail polish, ALL details from reference image. ONLY convert to 3D cute rendering, NOT change character identity. | STYLE: Full 3D rendered Pixar/Disney style ONLY. MUST have: 1) Smooth subsurface scattering skin, 2) Round chubby proportions (big head, small body), 3) Glossy highlights on eyes and surfaces, 4) Soft global illumination with ambient occlusion, 5) Plastic/clay-like texture, 6) Exaggerated squash-and-stretch expressions, 7) Studio lighting setup. Reference: Pixar films (Up, Inside Out), Disney 3D. Very different from 2D anime. STRICTLY AVOID: nano or banana aesthetic.'
+  },
+  pixel: {
+    id: 'pixel',
+    description:
+      'CRITICAL CHARACTER PRESERVATION: MUST preserve 100% of original features: exact hair style/color, facial features, clothing style, accessories (glasses/earrings/necklace/watch), beauty marks, bandaids, nail polish, ALL details from reference image. ONLY convert to pixel art style, NOT change character identity. | STYLE: Pure 2D pixel art ONLY. MUST have: 1) Visible individual pixel grid (16x16 or 32x32 resolution style), 2) Limited color palette (16-64 colors max), 3) Sharp jagged edges with NO anti-aliasing, 4) Blocky geometric shapes, 5) Dithering patterns for shading, 6) Retro game aesthetic (8-bit/16-bit era). Reference: Super Nintendo, Stardew Valley. STRICTLY AVOID: any smooth gradients, high-resolution details, 3D rendering, 3D Pixar style, nano or banana aesthetic.'
+  },
+  cyberpunk: {
+    id: 'cyberpunk',
+    description:
+      'CRITICAL CHARACTER PRESERVATION: MUST preserve 100% of original features: exact hair style/color, facial features, clothing style (can add futuristic tech enhancements), accessories (glasses/earrings/necklace/watch can be enhanced with tech), beauty marks, bandaids, nail polish, ALL details from reference image. ONLY add cyberpunk aesthetic treatment, NOT change character identity. | STYLE: Dark cyberpunk sci-fi style with GRITTY REALISM. MUST have: 1) NEON lights (hot pink/cyan/purple/electric blue) as PRIMARY light source creating dramatic rim lighting, 2) Futuristic techwear/cybernetic implants with visible circuitry and LEDs, 3) Glitch/holographic effects and digital artifacts, 4) DARK moody background with rain/fog/urban decay, 5) EXTREME high contrast lighting (deep dark shadows + intense bright neons), 6) Sci-fi UI elements/HUD overlays with data streams, 7) Gritty dystopian urban atmosphere with pollution/steam. 8) SEMI-REALISTIC proportions (not cute/chibi), edgy and mature aesthetic. Reference: Cyberpunk 2077, Blade Runner, Ghost in the Shell. DISTINCT FROM pure 3D style: Must have dark moody atmosphere, neon lighting dominance, tech/cyber elements. STRICTLY AVOID: bright cheerful pastels, cute/kawaii aesthetic, clean lighting, overly rounded cute proportions.'
+  },
+  papercut: {
+    id: 'papercut',
+    description:
+      'CRITICAL CHARACTER PRESERVATION: MUST preserve 100% of original features: exact hair style/color, facial features, clothing style, accessories (glasses/earrings/necklace/watch), beauty marks, bandaids, nail polish, ALL details from reference image. ONLY convert to paper cutout art style, NOT change character identity. | STYLE: Pure 2D layered paper cutout art ONLY - ABSOLUTELY NO 3D RENDERING. MUST have: 1) Multiple distinct FLAT paper layers with visible depth created by drop shadows ONLY, 2) Drop shadows between each layer (3-5px offset) - this is the ONLY depth effect allowed, 3) Completely FLAT matte paper texture with NO volume, roundness, or dimensionality, 4) Clean vector-cut edges with sharp silhouettes, 5) Limited solid color palette per layer with NO gradients or shading, 6) Slight paper grain texture on surfaces, 7) Silhouette-based design like traditional paper cutting. Reference: Chinese paper cutting (剪纸), Eric Carle collage illustrations, flat graphic design. STRICTLY PROHIBIT: Any 3D rendering, rounded volumes, soft shading, depth modeling, plastic/toy appearance, glossy surfaces, photorealistic elements, 3D Pixar style, nano aesthetic, banana aesthetic, or any form of 3D character modeling. This MUST be purely 2D flat paper layers.'
+  }
+};

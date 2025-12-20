@@ -3,18 +3,11 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import JSZip from 'jszip';
 import ReferenceUploader from './components/ReferenceUploader';
 import StickerGrid from './components/StickerGrid';
-import ApiKeyInput from './components/ApiKeyInput';
 import { GeneratedSticker, GenerationStatus, StickerCategory, StickerPrompt, StickerStyleId, GenerationMode } from './types';
 import { generateStickerImage, generateStickerGrid, analyzeCharacter } from './services/geminiService';
 import { sliceGrid2x2, removeBackgroundSmart, generateMarketingSheet } from './utils/imageProcessor';
 import { STICKER_TEMPLATES, STYLES, CUSTOM_PRESETS, generateComicStages } from './constants';
 
-declare global {
-  interface AIStudio {
-    hasSelectedApiKey: () => Promise<boolean>;
-    openSelectKey: () => Promise<void>;
-  }
-}
 
 // Utility to shuffle array and pick N (Default 12 now)
 const getRandomPrompts = (prompts: StickerPrompt[], count: number = 12): StickerPrompt[] => {
@@ -23,8 +16,9 @@ const getRandomPrompts = (prompts: StickerPrompt[], count: number = 12): Sticker
 };
 
 const App: React.FC = () => {
-  const [apiKeySelected, setApiKeySelected] = useState<boolean>(false);
-  const [userApiKey, setUserApiKey] = useState<string | null>(null);
+  const [deviceId, setDeviceId] = useState<string>('');
+  const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
+  const [paymentToken, setPaymentToken] = useState<string | null>(null);
   
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   
@@ -64,9 +58,18 @@ const App: React.FC = () => {
 
   // Single Sticker Preview Modal (Mobile)
   const [previewSticker, setPreviewSticker] = useState<{url: string, label: string} | null>(null);
-
   // Ref to control stopping the batch generation
   const stopRef = useRef<boolean>(false);
+
+  // Device ID (used for backend user identification)
+  useEffect(() => {
+    let id = localStorage.getItem('deviceId');
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem('deviceId', id);
+    }
+    setDeviceId(id);
+  }, []);
 
   // Initialize random prompts on mount (default 12)
   useEffect(() => {
@@ -181,42 +184,46 @@ const App: React.FC = () => {
     });
   };
 
-  // Check for API key on mount (Environment or AI Studio)
-  useEffect(() => {
-    const checkEnvironment = async () => {
-      // 1. Check if process.env.API_KEY exists (e.g. AI Studio IDX)
-      if (process.env.API_KEY) {
-        setUserApiKey(process.env.API_KEY);
-        setApiKeySelected(true);
-        return;
-      }
+  const ensurePaid = useCallback(async (): Promise<string> => {
+    if (!deviceId) {
+      throw new Error('设备ID未就绪，请刷新页面重试');
+    }
 
-      // 2. Check AI Studio Object
-      if (window.aistudio) {
-        const hasKey = await window.aistudio.hasSelectedApiKey();
-        if (hasKey) {
-           setApiKeySelected(true);
+    // If we already have an order/token, verify first
+    if (paymentOrderId && paymentToken) {
+      try {
+        const { verifyPayment } = await import('./services/paymentApi');
+        const status = await verifyPayment({ orderId: paymentOrderId, deviceId });
+        if (status.status === 'paid' && status.remainingGrids > 0) {
+          return paymentToken;
         }
+      } catch {
+        // fall through to create a new order
       }
-      
-      // 3. Check LocalStorage (For returning Vercel users)
-      const localKey = localStorage.getItem('gemini_api_key');
-      if (localKey) {
-        setUserApiKey(localKey);
-        setApiKeySelected(true);
+    }
+
+    const { createPaymentOrder, mockPay, verifyPayment } = await import('./services/paymentApi');
+
+    setLoadingProgress('🧾 正在创建订单...');
+    const order = await createPaymentOrder({ count: targetCount as 4 | 8 | 12, deviceId });
+    setPaymentOrderId(order.orderId);
+    setPaymentToken(order.paymentToken);
+
+    setLoadingProgress('✅ 正在模拟支付(开发环境)...');
+    await mockPay({ orderId: order.orderId, deviceId });
+
+    setLoadingProgress('⏳ 正在确认支付状态...');
+    for (let i = 0; i < 30; i++) {
+      const v = await verifyPayment({ orderId: order.orderId, deviceId });
+      if (v.status === 'paid') {
+        return order.paymentToken;
       }
-    };
-    checkEnvironment();
-  }, []);
+      await new Promise((r) => setTimeout(r, 2000));
+    }
 
-  const handleUserKeySubmit = (key: string) => {
-    setUserApiKey(key);
-    setApiKeySelected(true);
-  };
+    throw new Error('支付确认超时，请重试');
+  }, [deviceId, paymentOrderId, paymentToken, targetCount]);
 
-  const getEffectiveKey = (): string => {
-    return userApiKey || process.env.API_KEY || '';
-  };
 
   const handleImageChange = (base64: string | null) => {
     setReferenceImage(base64);
@@ -230,25 +237,26 @@ const App: React.FC = () => {
   const generateSingleSticker = useCallback(async (id: string, prompt: string, currentRefImage: string): Promise<'SUCCESS' | 'ERROR' | 'RATE_LIMIT'> => {
     if (!currentRefImage) return 'ERROR';
     const key = `${id}_${currentStyle}`;
-    const apiKey = getEffectiveKey();
 
     setGeneratedStickers(prev => ({
       ...prev,
       [key]: { id: key, url: prev[key]?.url || '', status: GenerationStatus.GENERATING }
     }));
-
     try {
+      const token = await ensurePaid();
+
       // Ensure we have a description (DNA)
       let dna = characterDescription;
       if (!dna) {
         const categoryLabel = STICKER_TEMPLATES[currentCategory].label;
-        dna = await analyzeCharacter(apiKey, currentRefImage, categoryLabel);
+        dna = await analyzeCharacter('', currentRefImage, categoryLabel);
         setCharacterDescription(dna);
       }
 
       const styleConfig = STYLES[currentStyle];
+
       const resultBase64 = await generateStickerImage(
-        apiKey, 
+        token, 
         currentRefImage, 
         dna!,
         prompt,
@@ -271,7 +279,7 @@ const App: React.FC = () => {
       if (err.message && err.message.includes("429")) return 'RATE_LIMIT';
       return 'ERROR';
     }
-  }, [currentStyle, characterDescription, currentCategory, userApiKey]);
+  }, [currentStyle, characterDescription, currentCategory, ensurePaid]);
 
   const handleManualGenerate = useCallback(async (id: string, prompt: string) => {
     if (!referenceImage) return;
@@ -287,18 +295,18 @@ const App: React.FC = () => {
   // Batch Generation
   const handleBatchGenerate = useCallback(async () => {
     if (!referenceImage) return;
-    const apiKey = getEffectiveKey();
     
     if (activePrompts.length === 0) {
       alert("Prompts list is empty.");
       return;
     }
-
     setGlobalLoading(true);
     setErrorMsg(null);
     stopRef.current = false;
 
     try {
+      const token = await ensurePaid();
+
       // STEP 1: Analyze Character
       let dna = characterDescription;
       if (!dna) {
@@ -317,11 +325,11 @@ const App: React.FC = () => {
           };
           const categoryLabel = categoryMap[currentCategory] || 'Character';
           
-          dna = await analyzeCharacter(apiKey, referenceImage, categoryLabel);
+          dna = await analyzeCharacter('', referenceImage, categoryLabel);
           setCharacterDescription(dna);
         } catch (err) {
           console.error("Analysis failed", err);
-          setErrorMsg("角色分析失败，请检查 API Key 是否有效。");
+          setErrorMsg("角色分析失败，请稍后再试。");
           setGlobalLoading(false);
           return;
         }
@@ -384,7 +392,7 @@ const App: React.FC = () => {
           }
 
           const gridBase64 = await generateStickerGrid(
-             apiKey,
+             token,
              currentRef,
              dna!,
              apiBatch, // Send padded batch
@@ -442,7 +450,7 @@ const App: React.FC = () => {
 
     setGlobalLoading(false);
     setLoadingProgress('');
-  }, [userApiKey, referenceImage, activePrompts, currentStyle, generatedStickers, characterDescription, currentCategory]);
+  }, [referenceImage, activePrompts, currentStyle, generatedStickers, characterDescription, currentCategory, ensurePaid]);
 
   const handleDownloadAll = async () => {
     const zip = new JSZip();
@@ -515,11 +523,6 @@ const App: React.FC = () => {
   const handleStickerClick = (sticker: GeneratedSticker, label: string) => {
     setPreviewSticker({ url: sticker.url, label });
   };
-
-  // If we are waiting for a Key, show the input screen
-  if (!apiKeySelected) {
-    return <ApiKeyInput onKeySubmit={handleUserKeySubmit} />;
-  }
 
   const hasAnySuccessInView = activePrompts.some(
     p => generatedStickers[`${p.id}_${currentStyle}`]?.status === GenerationStatus.SUCCESS
@@ -772,7 +775,7 @@ const App: React.FC = () => {
              onGenerate={handleManualGenerate}
              onStickerClick={handleStickerClick}
              isProcessing={globalLoading}
-             hasApiKey={true}
+             hasPayment={!!paymentToken}
              hasReference={!!referenceImage}
            />
         </div>

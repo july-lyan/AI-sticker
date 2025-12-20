@@ -1,0 +1,102 @@
+import React, { useEffect, useState } from 'react';
+import { getFreeQuota } from '../services/paymentApi';
+
+interface FreeQuotaDisplayProps {
+  deviceId: string;
+}
+
+const FreeQuotaDisplay: React.FC<FreeQuotaDisplayProps> = ({ deviceId }) => {
+  const [quota, setQuota] = useState<{
+    remaining: number;
+    used: number;
+    limit: number;
+    resetAt: string;
+    isFreeMode: boolean;
+  } | null>(null);
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadQuota();
+  }, [deviceId]);
+
+  const loadQuota = async () => {
+    try {
+      const data = await getFreeQuota(deviceId);
+      setQuota(data);
+    } catch (error) {
+      console.error('Failed to load quota:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return null;
+  }
+
+  if (!quota || !quota.isFreeMode) {
+    return null;
+  }
+
+  const percentage = (quota.remaining / quota.limit) * 100;
+  const isLow = quota.remaining <= 1;
+  const isExhausted = quota.remaining === 0;
+
+  return (
+    <div className="w-full p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-4 border-black pop-shadow rounded-lg mb-4">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-black uppercase">🎁 免费体验模式</h3>
+        {isExhausted ? (
+          <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full font-bold border-2 border-black">
+            已用完
+          </span>
+        ) : isLow ? (
+          <span className="text-xs bg-yellow-500 text-white px-2 py-1 rounded-full font-bold border-2 border-black">
+            即将用完
+          </span>
+        ) : (
+          <span className="text-xs bg-green-500 text-white px-2 py-1 rounded-full font-bold border-2 border-black">
+            可用
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3 mb-2">
+        <div className="flex-1">
+          <div className="flex justify-between text-xs mb-1">
+            <span className="font-bold">今日剩余次数</span>
+            <span className="font-bold">
+              {quota.remaining} / {quota.limit}
+            </span>
+          </div>
+          <div className="w-full h-3 bg-gray-200 rounded-full border-2 border-black overflow-hidden">
+            <div
+              className={`h-full transition-all duration-300 ${
+                isExhausted
+                  ? 'bg-red-500'
+                  : isLow
+                  ? 'bg-yellow-500'
+                  : 'bg-gradient-to-r from-blue-500 to-purple-500'
+              }`}
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <p className="text-[10px] text-gray-600">
+        {isExhausted ? (
+          <>
+            今日免费次数已用完，明天 0 点自动重置。
+            <span className="font-bold text-blue-600"> 升级到付费版可无限生成！</span>
+          </>
+        ) : (
+          <>每天免费生成 {quota.limit} 次，明天 0 点自动重置</>
+        )}
+      </p>
+    </div>
+  );
+};
+
+export default FreeQuotaDisplay;
