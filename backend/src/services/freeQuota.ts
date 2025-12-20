@@ -3,6 +3,67 @@ import { log } from '../utils/logger.js';
 // 免费额度配置
 export const FREE_QUOTA_PER_DAY = Number(process.env.FREE_QUOTA_PER_DAY || 3);
 
+// VIP白名单配置
+// 格式: deviceId1:quota1,deviceId2:quota2 或 IP:quota 或 userId:quota
+// 示例: abc123:10,192.168.1.100:5
+const VIP_WHITELIST_RAW = process.env.VIP_WHITELIST || '';
+
+interface VIPConfig {
+  identifier: string; // Device ID / IP / userId
+  quota: number;      // 每日免费次数
+}
+
+const VIP_WHITELIST: Map<string, number> = new Map();
+
+// 解析白名单配置
+if (VIP_WHITELIST_RAW) {
+  VIP_WHITELIST_RAW.split(',').forEach((entry) => {
+    const [identifier, quotaStr] = entry.trim().split(':');
+    if (identifier && quotaStr) {
+      const quota = Number(quotaStr);
+      if (!isNaN(quota) && quota > 0) {
+        VIP_WHITELIST.set(identifier, quota);
+        log.info(`[FreeQuota] VIP configured: ${identifier} → ${quota} quota/day`);
+      }
+    }
+  });
+}
+
+/**
+ * 获取用户的每日免费额度（考虑白名单）
+ * 优先级：Device ID > IP > userId > 默认
+ */
+function getUserQuotaLimit(userId: string): number {
+  // userId格式: IP_DeviceID
+  const parts = userId.split('_');
+  const ip = parts[0];
+  const deviceId = parts.length > 1 ? parts[1] : '';
+
+  // 优先级1: 检查Device ID白名单
+  if (deviceId && VIP_WHITELIST.has(deviceId)) {
+    const quota = VIP_WHITELIST.get(deviceId)!;
+    log.info(`[FreeQuota] VIP user (Device ID): ${deviceId} → ${quota} quota/day`);
+    return quota;
+  }
+
+  // 优先级2: 检查IP白名单
+  if (VIP_WHITELIST.has(ip)) {
+    const quota = VIP_WHITELIST.get(ip)!;
+    log.info(`[FreeQuota] VIP user (IP): ${ip} → ${quota} quota/day`);
+    return quota;
+  }
+
+  // 优先级3: 检查完整userId白名单
+  if (VIP_WHITELIST.has(userId)) {
+    const quota = VIP_WHITELIST.get(userId)!;
+    log.info(`[FreeQuota] VIP user (userId): ${userId} → ${quota} quota/day`);
+    return quota;
+  }
+
+  // 默认额度
+  return FREE_QUOTA_PER_DAY;
+}
+
 interface FreeQuota {
   userId: string;
   date: string; // YYYY-MM-DD
@@ -77,12 +138,14 @@ export async function getFreeQuota(_, userId: string): Promise<FreeQuota> {
     return stored;
   }
 
-  // 首次访问，初始化免费额度
+  // 首次访问，初始化免费额度（考虑白名单）
+  const userLimit = getUserQuotaLimit(userId);
+
   const quota: FreeQuota = {
     userId,
     date,
     used: 0,
-    limit: FREE_QUOTA_PER_DAY,
+    limit: userLimit,
     resetAt: getTomorrowMidnight()
   };
 
