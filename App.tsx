@@ -6,6 +6,7 @@ import StickerGrid from './components/StickerGrid';
 import FreeQuotaDisplay from './components/FreeQuotaDisplay';
 import { GeneratedSticker, GenerationStatus, StickerCategory, StickerPrompt, StickerStyleId, GenerationMode } from './types';
 import { generateStickerImage, generateStickerGrid, analyzeCharacter } from './services/geminiService';
+import { getFreeQuota } from './services/paymentApi';
 import { sliceGrid2x2, removeBackgroundSmart, generateMarketingSheet } from './utils/imageProcessor';
 import { STICKER_TEMPLATES, STYLES, CUSTOM_PRESETS, generateComicStages } from './constants';
 
@@ -20,6 +21,12 @@ const App: React.FC = () => {
   const [deviceId, setDeviceId] = useState<string>('');
   const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
   const [paymentToken, setPaymentToken] = useState<string | null>(null);
+  const [quotaInfo, setQuotaInfo] = useState<{
+    isFreeMode: boolean;
+    isVip: boolean;
+    remaining: number;
+    limit: number;
+  } | null>(null);
   
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   
@@ -72,6 +79,28 @@ const App: React.FC = () => {
     setDeviceId(id);
   }, []);
 
+  const refreshQuota = useCallback(async () => {
+    if (!deviceId) return;
+    try {
+      const q = await getFreeQuota(deviceId);
+      setQuotaInfo({
+        isFreeMode: q.isFreeMode,
+        isVip: q.isVip,
+        remaining: q.remaining,
+        limit: q.limit
+      });
+    } catch {
+      setQuotaInfo(null);
+    }
+  }, [deviceId]);
+
+  useEffect(() => {
+    refreshQuota();
+  }, [refreshQuota]);
+
+  const isFreeRestricted = Boolean(quotaInfo?.isFreeMode && !quotaInfo?.isVip);
+  const isFreeExhausted = Boolean(quotaInfo?.isFreeMode && quotaInfo.remaining <= 0);
+
   // Initialize random prompts on mount (default 12)
   useEffect(() => {
     setActivePrompts(getRandomPrompts(STICKER_TEMPLATES['female'].prompts, 12));
@@ -105,6 +134,11 @@ const App: React.FC = () => {
 
   // 修改生成数量
   const handleTargetCountChange = (count: number) => {
+    if (isFreeRestricted && count !== 4) {
+      setTargetCount(4);
+      return;
+    }
+
     setTargetCount(count);
 
     // 四格漫画模式仅支持4张，切换到其他数量时自动切换到随机模式
@@ -126,6 +160,13 @@ const App: React.FC = () => {
       setActivePrompts(newPrompts);
     }
   };
+
+  useEffect(() => {
+    if (!isFreeRestricted) return;
+    if (targetCount !== 4) {
+      handleTargetCountChange(4);
+    }
+  }, [isFreeRestricted, targetCount]);
 
   // 切换生成模式
   const handleModeChange = (mode: GenerationMode) => {
@@ -190,6 +231,13 @@ const App: React.FC = () => {
       throw new Error('设备ID未就绪，请刷新页面重试');
     }
 
+    if (quotaInfo?.isFreeMode) {
+      if (quotaInfo.remaining <= 0) {
+        throw new Error('今日免费次数已用完，请明天再来');
+      }
+      return 'free-mode';
+    }
+
     // If we already have an order/token, verify first
     if (paymentOrderId && paymentToken) {
       try {
@@ -223,7 +271,7 @@ const App: React.FC = () => {
     }
 
     throw new Error('支付确认超时，请重试');
-  }, [deviceId, paymentOrderId, paymentToken, targetCount]);
+  }, [deviceId, paymentOrderId, paymentToken, quotaInfo?.isFreeMode, quotaInfo?.remaining, targetCount]);
 
 
   const handleImageChange = (base64: string | null) => {
@@ -270,6 +318,7 @@ const App: React.FC = () => {
         ...prev,
         [key]: { id: key, url: smartBgRemoved, status: GenerationStatus.SUCCESS }
       }));
+      refreshQuota();
       return 'SUCCESS';
     } catch (err: any) {
       console.error(`Error generating sticker ${id}:`, err);
@@ -280,7 +329,7 @@ const App: React.FC = () => {
       if (err.message && err.message.includes("429")) return 'RATE_LIMIT';
       return 'ERROR';
     }
-  }, [currentStyle, characterDescription, currentCategory, ensurePaid]);
+  }, [currentStyle, characterDescription, currentCategory, ensurePaid, refreshQuota]);
 
   const handleManualGenerate = useCallback(async (id: string, prompt: string) => {
     if (!referenceImage) return;
@@ -296,6 +345,10 @@ const App: React.FC = () => {
   // Batch Generation
   const handleBatchGenerate = useCallback(async () => {
     if (!referenceImage) return;
+    if (isFreeExhausted) {
+      alert('今日免费次数已用完，请明天再来');
+      return;
+    }
     
     if (activePrompts.length === 0) {
       alert("Prompts list is empty.");
@@ -451,7 +504,8 @@ const App: React.FC = () => {
 
     setGlobalLoading(false);
     setLoadingProgress('');
-  }, [referenceImage, activePrompts, currentStyle, generatedStickers, characterDescription, currentCategory, ensurePaid]);
+    refreshQuota();
+  }, [referenceImage, isFreeExhausted, activePrompts, currentStyle, generatedStickers, characterDescription, currentCategory, ensurePaid, refreshQuota]);
 
   const handleDownloadAll = async () => {
     const zip = new JSZip();
@@ -601,7 +655,14 @@ const App: React.FC = () => {
                     <button
                        key={num}
                        onClick={() => handleTargetCountChange(num)}
-                       className={`flex-1 py-2 font-bold border-2 rounded text-sm ${targetCount === num ? 'bg-pink-400 text-white border-black' : 'bg-white text-black border-gray-300'}`}
+                       disabled={isFreeRestricted && num !== 4}
+                       className={`flex-1 py-2 font-bold border-2 rounded text-sm ${
+                         isFreeRestricted && num !== 4
+                           ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
+                           : targetCount === num
+                           ? 'bg-pink-400 text-white border-black'
+                           : 'bg-white text-black border-gray-300'
+                       }`}
                     >
                       {num}张
                     </button>
@@ -805,25 +866,27 @@ const App: React.FC = () => {
                  </button>
                </div>
              ) : (
-               <button
-                 onClick={handleBatchGenerate}
-                 disabled={
-                  !referenceImage ||
-                  (generationMode === 'comic' && !selectedEmotion) ||
-                  (generationMode === 'custom' && selectedCustomEmotions.length !== targetCount) ||
-                  activePrompts.length === 0
-                }
+	               <button
+	                 onClick={handleBatchGenerate}
+	                 disabled={
+	                  isFreeExhausted ||
+	                  !referenceImage ||
+	                  (generationMode === 'comic' && !selectedEmotion) ||
+	                  (generationMode === 'custom' && selectedCustomEmotions.length !== targetCount) ||
+	                  activePrompts.length === 0
+	                }
                  className={`
                    w-full py-3 text-sm md:text-base font-black uppercase border-4 border-black rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
                    active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all
-                   ${(
-                    !referenceImage ||
-                    (generationMode === 'comic' && !selectedEmotion) ||
-                    (generationMode === 'custom' && selectedCustomEmotions.length !== targetCount) ||
-                    activePrompts.length === 0
-                  ) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-purple-400 hover:bg-purple-500 text-white'}
-                 `}
-               >
+	                   ${(
+	                    isFreeExhausted ||
+	                    !referenceImage ||
+	                    (generationMode === 'comic' && !selectedEmotion) ||
+	                    (generationMode === 'custom' && selectedCustomEmotions.length !== targetCount) ||
+	                    activePrompts.length === 0
+	                  ) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-purple-400 hover:bg-purple-500 text-white'}
+	                 `}
+	               >
                  {generationMode === 'comic' ? (
                    selectedEmotion ? (
                      <>

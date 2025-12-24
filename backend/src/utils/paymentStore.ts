@@ -1,4 +1,4 @@
-import { createClient, type RedisClientType } from 'redis';
+import { createClient } from 'redis';
 import { REDIS_URL } from './env.js';
 import { log } from './logger.js';
 
@@ -64,9 +64,9 @@ class MemoryStore implements PaymentStore {
 }
 
 class RedisStore implements PaymentStore {
-  private client: RedisClientType;
+  private client: ReturnType<typeof createClient>;
 
-  constructor(client: RedisClientType) {
+  constructor(client: ReturnType<typeof createClient>) {
     this.client = client;
   }
 

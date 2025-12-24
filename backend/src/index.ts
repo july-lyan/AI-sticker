@@ -24,7 +24,7 @@ process.on('uncaughtException', (err) => {
 
 app.use(
   cors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       if (!origin) return callback(null, true);
       if (isDev) return callback(null, true);
       if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);

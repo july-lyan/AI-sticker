@@ -105,7 +105,9 @@ const FEMALE_PROMPTS: StickerPrompt[] = [
   { id: 'f_47', label: '再见', prompt: '角色优雅地挥手，转身只留下背影, text bubble: "不送"' },
   { id: 'f_48', label: '加油', prompt: '角色扎起头发，握拳，充满斗志, text bubble: "冲鸭"' },
   { id: 'f_49', label: '害羞', prompt: '角色脸红得像苹果，双手捂脸，透过指缝偷看, text bubble: "羞羞"' },
-  { id: 'f_50', label: '无所谓', prompt: '角色耸肩，摊手，一脸不在乎, text bubble: "随便"' }
+  { id: 'f_50', label: '无所谓', prompt: '角色耸肩，摊手，一脸不在乎, text bubble: "随便"' },
+  { id: 'f_xmas', label: '圣诞快乐', prompt: '角色戴着圣诞帽，手捧礼物站在装饰华丽的圣诞树旁，灯串闪烁，雪花飘落, text bubble: "圣诞快乐"' },
+  { id: 'f_newyear', label: '新年快乐', prompt: '角色手提红灯笼，背景绽放烟花，可出现舞龙舞狮或糖葫芦任一, text bubble: "新年快乐"' }
 ];
 
 const MALE_PROMPTS: StickerPrompt[] = [
@@ -158,7 +160,9 @@ const MALE_PROMPTS: StickerPrompt[] = [
   { id: 'm_47', label: '兄弟', prompt: '角色勾着另一个人的肩膀，碰杯，义气千秋, text bubble: "走一个"' },
   { id: 'm_48', label: '打脸', prompt: '角色脸肿得很高，上面有红手印，尴尬, text bubble: "打脸"' },
   { id: 'm_49', label: '牛逼', prompt: '角色双手竖起大拇指，表情夸张的赞赏, text bubble: "牛哇"' },
-  { id: 'm_50', label: '再见', prompt: '角色潇洒转身挥手，不带走一片云彩, text bubble: "溜了"' }
+  { id: 'm_50', label: '再见', prompt: '角色潇洒转身挥手，不带走一片云彩, text bubble: "溜了"' },
+  { id: 'm_xmas', label: '圣诞快乐', prompt: '角色戴着圣诞帽，抱着礼物站在巨大的圣诞树旁，彩灯闪烁，雪花飘落, text bubble: "圣诞快乐"' },
+  { id: 'm_newyear', label: '新年快乐', prompt: '角色手提红灯笼或拿糖葫芦，背景烟花绽放，可出现舞龙舞狮任一, text bubble: "新年快乐"' }
 ];
 
 const CHILD_PROMPTS: StickerPrompt[] = [
@@ -181,7 +185,9 @@ const CHILD_PROMPTS: StickerPrompt[] = [
   { id: 'c_17', label: '挑食', prompt: '角色面对胡萝卜/青椒，把头扭到一边，一脸嫌弃, text bubble: "不吃"' },
   { id: 'c_18', label: '玩泥巴', prompt: '角色浑身是泥，手里捧着泥球，笑得很开心, text bubble: "好玩"' },
   { id: 'c_19', label: '被夸奖', prompt: '角色手里拿着小红花，脸红红的，不好意思又开心, text bubble: "嘿嘿"' },
-  { id: 'c_20', label: '秘密', prompt: '角色竖起食指放在嘴边，嘘声状, text bubble: "嘘"' }
+  { id: 'c_20', label: '秘密', prompt: '角色竖起食指放在嘴边，嘘声状, text bubble: "嘘"' },
+  { id: 'c_xmas', label: '圣诞快乐', prompt: '角色戴着圣诞帽，围着圣诞树转圈，手里拿小礼物，兴奋跳跳, text bubble: "圣诞快乐"' },
+  { id: 'c_newyear', label: '新年快乐', prompt: '角色提着小红灯笼或拿着糖葫芦，看烟花，旁边可出现舞狮或糖葫芦任一, text bubble: "新年快乐"' }
 ];
 
 const ELDER_PROMPTS: StickerPrompt[] = [
@@ -199,7 +205,9 @@ const ELDER_PROMPTS: StickerPrompt[] = [
   { id: 'e_12', label: '不服老', prompt: '角色举着哑铃或者在单杠上，展示肌肉（虽然不多）, text bubble: "老当益壮"' },
   { id: 'e_13', label: '这就是人生', prompt: '角色背着手看夕阳，背影沧桑又从容, text bubble: "看淡了"' },
   { id: 'e_14', label: '点赞', prompt: '角色竖起大拇指，标准的游客照姿势, text bubble: "棒棒哒"' },
-  { id: 'e_15', label: '震惊', prompt: '角色摘下眼镜，一脸难以置信, text bubble: "现在的年轻人"' }
+  { id: 'e_15', label: '震惊', prompt: '角色摘下眼镜，一脸难以置信, text bubble: "现在的年轻人"' },
+  { id: 'e_xmas', label: '圣诞快乐', prompt: '角色戴着圣诞帽，站在圣诞树旁递出礼物，笑得慈祥，彩灯闪烁, text bubble: "圣诞快乐"' },
+  { id: 'e_newyear', label: '新年快乐', prompt: '角色手提红灯笼或拿糖葫芦，背景烟花绽放，旁边可出现舞龙舞狮任一, text bubble: "新年快乐"' }
 ];
 
 const PET_PROMPTS: StickerPrompt[] = [
@@ -222,7 +230,9 @@ const PET_PROMPTS: StickerPrompt[] = [
   { id: 'p_17', label: '踩奶', prompt: '角色在毯子/主人身上踩来踩去，一脸幸福, text bubble: "踩踩"' },
   { id: 'p_18', label: '嫌弃', prompt: '角色看着猫粮/狗粮，扭头就走，一脸高冷, text bubble: "不吃"' },
   { id: 'p_19', label: '护食', prompt: '角色护着食盆，低吼威胁，眼神凶狠, text bubble: "别碰"' },
-  { id: 'p_20', label: '晒太阳', prompt: '角色懒洋洋地趴在阳光下，眯着眼睛享受, text bubble: "舒服~"' }
+  { id: 'p_20', label: '晒太阳', prompt: '角色懒洋洋地趴在阳光下，眯着眼睛享受, text bubble: "舒服~"' },
+  { id: 'p_xmas', label: '圣诞快乐', prompt: '宠物戴着圣诞帽或鹿角发箍，趴在圣诞树旁抱着小礼物，彩灯闪烁, text bubble: "圣诞快乐"' },
+  { id: 'p_newyear', label: '新年快乐', prompt: '宠物系着红围巾或穿小唐装，旁边挂红灯笼，背景烟花绽放，可出现糖葫芦任一, text bubble: "新年快乐"' }
 ];
 
 const COUPLE_PROMPTS: StickerPrompt[] = [
@@ -245,7 +255,9 @@ const COUPLE_PROMPTS: StickerPrompt[] = [
   { id: 'cp_17', label: '贴贴', prompt: '两个角色脸贴着脸，做出亲密可爱的表情, text bubble: "贴贴"' },
   { id: 'cp_18', label: '吃醋', prompt: '一个角色看到对方和别人说话，鼓着腮帮子吃醋, text bubble: "哼！"' },
   { id: 'cp_19', label: '庆祝纪念日', prompt: '两个角色拿着蛋糕庆祝，温馨甜蜜, text bubble: "纪念日快乐"' },
-  { id: 'cp_20', label: '雨中漫步', prompt: '两个角色共撑一把伞在雨中，靠得很近, text bubble: "浪漫"' }
+  { id: 'cp_20', label: '雨中漫步', prompt: '两个角色共撑一把伞在雨中，靠得很近, text bubble: "浪漫"' },
+  { id: 'cp_xmas', label: '圣诞快乐', prompt: '两个角色戴着圣诞帽在圣诞树旁交换礼物，灯串闪烁，氛围甜蜜, text bubble: "圣诞快乐"' },
+  { id: 'cp_newyear', label: '新年快乐', prompt: '两个角色手提红灯笼或拿着糖葫芦，看烟花，旁边可出现舞龙舞狮任一, text bubble: "新年快乐"' }
 ];
 
 const DUO_PROMPTS: StickerPrompt[] = [
@@ -268,7 +280,9 @@ const DUO_PROMPTS: StickerPrompt[] = [
   { id: 'd_17', label: '比拼', prompt: '两个角色比赛掰手腕/比身高，较劲, text bubble: "我赢"' },
   { id: 'd_18', label: '一起逛街', prompt: '两个角色提着购物袋逛街，开心聊天, text bubble: "买买买"' },
   { id: 'd_19', label: '背靠背', prompt: '两个角色背靠背坐着，各玩手机但很放松, text bubble: "舒服"' },
-  { id: 'd_20', label: '一起旅行', prompt: '两个角色背包客装扮，兴奋地出发, text bubble: "出发"' }
+  { id: 'd_20', label: '一起旅行', prompt: '两个角色背包客装扮，兴奋地出发, text bubble: "出发"' },
+  { id: 'd_xmas', label: '圣诞快乐', prompt: '两个角色戴着圣诞帽在圣诞树旁合影，举起礼物，灯串闪烁, text bubble: "圣诞快乐"' },
+  { id: 'd_newyear', label: '新年快乐', prompt: '两个角色穿手提红灯笼或拿糖葫芦，背景烟花绽放, text bubble: "新年快乐"' }
 ];
 
 const FAMILY_PROMPTS: StickerPrompt[] = [
@@ -291,7 +305,9 @@ const FAMILY_PROMPTS: StickerPrompt[] = [
   { id: 'fam_17', label: '逛超市', prompt: '一家人推着购物车逛超市，孩子坐在车里, text bubble: "买买买"' },
   { id: 'fam_18', label: '睡觉', prompt: '一家人挤在床上睡觉，温馨拥挤, text bubble: "晚安"' },
   { id: 'fam_19', label: '春节', prompt: '一家人穿新衣服拜年，贴春联放鞭炮, text bubble: "新年快乐"' },
-  { id: 'fam_20', label: '修理东西', prompt: '家长修东西，孩子在旁边递工具帮忙, text bubble: "帮忙"' }
+  { id: 'fam_20', label: '修理东西', prompt: '家长修东西，孩子在旁边递工具帮忙, text bubble: "帮忙"' },
+  { id: 'fam_xmas', label: '圣诞快乐', prompt: '一家人在圣诞树旁戴圣诞帽拆礼物，彩灯闪烁，氛围温馨, text bubble: "圣诞快乐"' },
+  { id: 'fam_newyear', label: '新年快乐', prompt: '一家人穿红色新衣，提红灯笼，看烟花，旁边可出现舞龙舞狮任一, text bubble: "新年快乐"' }
 ];
 
 const HUMAN_PET_PROMPTS: StickerPrompt[] = [
@@ -314,7 +330,9 @@ const HUMAN_PET_PROMPTS: StickerPrompt[] = [
   { id: 'hp_17', label: '阅读', prompt: '人物看书，宠物趴在腿上睡觉, text bubble: "陪伴"' },
   { id: 'hp_18', label: '玩具', prompt: '人物和宠物争抢玩具，打闹互动, text bubble: "是我的"' },
   { id: 'hp_19', label: '拥抱取暖', prompt: '冬天人物和宠物相互取暖拥抱, text bubble: "好暖"' },
-  { id: 'hp_20', label: '晒太阳', prompt: '人物和宠物一起懒洋洋地晒太阳, text bubble: "惬意"' }
+  { id: 'hp_20', label: '晒太阳', prompt: '人物和宠物一起懒洋洋地晒太阳, text bubble: "惬意"' },
+  { id: 'hp_xmas', label: '圣诞快乐', prompt: '人物和宠物都戴着圣诞帽，在圣诞树旁抱着礼物合影，灯串闪烁, text bubble: "圣诞快乐"' },
+  { id: 'hp_newyear', label: '新年快乐', prompt: '人物穿红色唐装/旗袍，宠物系红围巾，旁边挂红灯笼，背景烟花绽放, text bubble: "新年快乐"' }
 ];
 
 // 四格漫画连续动作生成函数

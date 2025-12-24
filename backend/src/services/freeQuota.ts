@@ -30,6 +30,21 @@ if (VIP_WHITELIST_RAW) {
 }
 
 /**
+ * 判断用户是否在VIP白名单中
+ * 匹配优先级：Device ID > IP > userId
+ */
+export function isVipUser(userId: string): boolean {
+  const parts = userId.split('_');
+  const ip = parts[0];
+  const deviceId = parts.length > 1 ? parts[1] : '';
+
+  if (deviceId && VIP_WHITELIST.has(deviceId)) return true;
+  if (VIP_WHITELIST.has(ip)) return true;
+  if (VIP_WHITELIST.has(userId)) return true;
+  return false;
+}
+
+/**
  * 获取用户的每日免费额度（考虑白名单）
  * 优先级：Device ID > IP > userId > 默认
  */
@@ -128,13 +143,20 @@ function saveQuotaToStore(key: string, quota: FreeQuota, ttlSeconds: number): vo
 /**
  * 获取用户今日免费额度
  */
-export async function getFreeQuota(_, userId: string): Promise<FreeQuota> {
+export async function getFreeQuota(_store: unknown, userId: string): Promise<FreeQuota> {
   const date = getTodayDate();
   const key = getQuotaKey(userId, date);
 
   const stored = getQuotaFromStore(key);
 
   if (stored) {
+    // Keep limit in sync with current VIP whitelist/env config without requiring a server restart.
+    const currentLimit = getUserQuotaLimit(userId);
+    if (stored.limit !== currentLimit) {
+      stored.limit = currentLimit;
+      saveQuotaToStore(key, stored, 86400);
+      log.info(`[FreeQuota] Updated quota limit for user ${userId}: limit=${stored.limit}`);
+    }
     return stored;
   }
 
@@ -161,7 +183,7 @@ export async function getFreeQuota(_, userId: string): Promise<FreeQuota> {
  * 消耗一次免费额度
  * @returns 成功返回true，额度不足返回false
  */
-export async function consumeFreeQuota(_, userId: string): Promise<boolean> {
+export async function consumeFreeQuota(_store: unknown, userId: string): Promise<boolean> {
   const date = getTodayDate();
   const key = getQuotaKey(userId, date);
 
@@ -184,7 +206,7 @@ export async function consumeFreeQuota(_, userId: string): Promise<boolean> {
 /**
  * 检查用户是否还有免费额度
  */
-export async function hasFreeQuota(_, userId: string): Promise<boolean> {
+export async function hasFreeQuota(_store: unknown, userId: string): Promise<boolean> {
   const quota = await getFreeQuota(null, userId);
   return quota.used < quota.limit;
 }
@@ -192,7 +214,7 @@ export async function hasFreeQuota(_, userId: string): Promise<boolean> {
 /**
  * 获取用户剩余免费次数
  */
-export async function getRemainingQuota(_, userId: string): Promise<number> {
+export async function getRemainingQuota(_store: unknown, userId: string): Promise<number> {
   const quota = await getFreeQuota(null, userId);
   return Math.max(0, quota.limit - quota.used);
 }

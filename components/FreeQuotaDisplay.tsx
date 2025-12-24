@@ -12,10 +12,12 @@ const FreeQuotaDisplay: React.FC<FreeQuotaDisplayProps> = ({ deviceId }) => {
     limit: number;
     resetAt: string;
     isFreeMode: boolean;
+    isVip: boolean;
   } | null>(null);
 
   const [loading, setLoading] = useState(true);
 
+  
   useEffect(() => {
     loadQuota();
   }, [deviceId]);
@@ -61,6 +63,12 @@ const FreeQuotaDisplay: React.FC<FreeQuotaDisplayProps> = ({ deviceId }) => {
           </span>
         )}
       </div>
+
+      <p className="text-[10px] text-gray-700 font-bold mb-2">
+        {quota.isVip
+          ? 'VIP 已开启：8/12 张可用（仍按每日额度扣减）'
+          : '免费模式仅支持生成 4 张（包含四格漫画），8/12 张已锁定'}
+      </p>
 
       <div className="flex items-center gap-3 mb-2">
         <div className="flex-1">

@@ -4,7 +4,7 @@ import { isProduction, PAYMENT_MODE, FREE_QUOTA_PER_DAY } from '../utils/env.js'
 import { getPaymentStore } from '../utils/paymentStore.js';
 import { fail, ok } from '../utils/http.js';
 import { createPaymentOrder, markOrderPaid, verifyOrder } from '../services/payment.js';
-import { getFreeQuota, getRemainingQuota } from '../services/freeQuota.js';
+import { getFreeQuota, getRemainingQuota, isVipUser } from '../services/freeQuota.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
@@ -110,7 +110,8 @@ router.get(
         used: quota.used,
         limit: quota.limit,
         resetAt: quota.resetAt,
-        isFreeMode: PAYMENT_MODE === 'free'
+        isFreeMode: PAYMENT_MODE === 'free',
+        isVip: isVipUser(userId)
       })
     );
   })
