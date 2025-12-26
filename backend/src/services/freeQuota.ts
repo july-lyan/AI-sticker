@@ -1,7 +1,13 @@
+import { createClient, RedisClientType } from 'redis';
 import { log } from '../utils/logger.js';
+import { REDIS_URL } from '../utils/env.js';
 
 // 免费额度配置
 export const FREE_QUOTA_PER_DAY = Number(process.env.FREE_QUOTA_PER_DAY || 3);
+
+// IP 防刷配置
+const IP_DEVICE_LIMIT = Number(process.env.IP_DEVICE_LIMIT || 10); // 同一IP最多允许的不同deviceId数量
+const IP_DEVICE_WINDOW_SECONDS = 86400; // 24小时窗口
 
 // VIP白名单配置
 // 格式: deviceId1:quota1,deviceId2:quota2 或 IP:quota 或 userId:quota
@@ -27,6 +33,30 @@ if (VIP_WHITELIST_RAW) {
       }
     }
   });
+}
+
+// Redis 客户端单例
+let redisClient: RedisClientType | null = null;
+let useRedis = false;
+
+async function getRedisClient(): Promise<RedisClientType | null> {
+  if (redisClient) return redisClient;
+  if (!REDIS_URL) {
+    log.warn('[FreeQuota] REDIS_URL not set; using in-memory store (data lost on restart)');
+    return null;
+  }
+
+  try {
+    redisClient = createClient({ url: REDIS_URL }) as RedisClientType;
+    redisClient.on('error', (err) => log.error('[FreeQuota] Redis error:', err));
+    await redisClient.connect();
+    useRedis = true;
+    log.info('[FreeQuota] Redis connected for quota storage');
+    return redisClient;
+  } catch (err) {
+    log.error('[FreeQuota] Failed to connect Redis, falling back to memory:', err);
+    return null;
+  }
 }
 
 /**
@@ -87,8 +117,15 @@ interface FreeQuota {
   resetAt: string; // ISO timestamp
 }
 
-// 内存存储（替代PaymentStore，避免key前缀冲突）
-const quotaStore = new Map<string, { value: FreeQuota; expiresAtMs: number }>();
+// IP 设备追踪（防刷）
+interface IpDeviceTracker {
+  devices: Set<string>;
+  blocked: boolean;
+}
+
+// 内存存储（作为 Redis 的降级方案）
+const memoryQuotaStore = new Map<string, { value: FreeQuota; expiresAtMs: number }>();
+const memoryIpDeviceStore = new Map<string, { value: IpDeviceTracker; expiresAtMs: number }>();
 
 /**
  * 获取今天的日期字符串 (YYYY-MM-DD)
@@ -118,26 +155,105 @@ function getQuotaKey(userId: string, date: string): string {
 }
 
 /**
- * 从内存获取额度
+ * 获取 IP 设备追踪 Key
  */
-function getQuotaFromStore(key: string): FreeQuota | null {
-  const entry = quotaStore.get(key);
+function getIpDeviceKey(ip: string, date: string): string {
+  return `ip_devices:${ip}:${date}`;
+}
+
+/**
+ * 从存储获取额度（支持 Redis 和内存）
+ */
+async function getQuotaFromStore(key: string): Promise<FreeQuota | null> {
+  const client = await getRedisClient();
+
+  if (client) {
+    try {
+      const raw = await client.get(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      log.error('[FreeQuota] Redis get error:', err);
+    }
+  }
+
+  // 降级到内存
+  const entry = memoryQuotaStore.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expiresAtMs) {
-    quotaStore.delete(key);
+    memoryQuotaStore.delete(key);
     return null;
   }
   return entry.value;
 }
 
 /**
- * 保存额度到内存
+ * 保存额度到存储（支持 Redis 和内存）
  */
-function saveQuotaToStore(key: string, quota: FreeQuota, ttlSeconds: number): void {
-  quotaStore.set(key, {
+async function saveQuotaToStore(key: string, quota: FreeQuota, ttlSeconds: number): Promise<void> {
+  const client = await getRedisClient();
+
+  if (client) {
+    try {
+      await client.set(key, JSON.stringify(quota), { EX: ttlSeconds });
+      return;
+    } catch (err) {
+      log.error('[FreeQuota] Redis set error:', err);
+    }
+  }
+
+  // 降级到内存
+  memoryQuotaStore.set(key, {
     value: quota,
     expiresAtMs: Date.now() + ttlSeconds * 1000
   });
+}
+
+/**
+ * 检查并记录 IP 下的设备（防刷检测）
+ * @returns { allowed: boolean, deviceCount: number }
+ */
+export async function checkIpDeviceLimit(ip: string, deviceId: string): Promise<{ allowed: boolean; deviceCount: number }> {
+  const date = getTodayDate();
+  const key = getIpDeviceKey(ip, date);
+  const client = await getRedisClient();
+
+  if (client) {
+    try {
+      // 使用 Redis Set 来追踪设备
+      await client.sAdd(key, deviceId);
+      await client.expire(key, IP_DEVICE_WINDOW_SECONDS);
+      const deviceCount = await client.sCard(key);
+
+      if (deviceCount > IP_DEVICE_LIMIT) {
+        log.warn(`[FreeQuota] IP ${ip} exceeded device limit: ${deviceCount}/${IP_DEVICE_LIMIT}`);
+        return { allowed: false, deviceCount: Number(deviceCount) };
+      }
+      return { allowed: true, deviceCount: Number(deviceCount) };
+    } catch (err) {
+      log.error('[FreeQuota] Redis IP check error:', err);
+    }
+  }
+
+  // 降级到内存
+  let entry = memoryIpDeviceStore.get(key);
+  if (!entry || Date.now() > entry.expiresAtMs) {
+    entry = {
+      value: { devices: new Set(), blocked: false },
+      expiresAtMs: Date.now() + IP_DEVICE_WINDOW_SECONDS * 1000
+    };
+    memoryIpDeviceStore.set(key, entry);
+  }
+
+  entry.value.devices.add(deviceId);
+  const deviceCount = entry.value.devices.size;
+
+  if (deviceCount > IP_DEVICE_LIMIT) {
+    entry.value.blocked = true;
+    log.warn(`[FreeQuota] IP ${ip} exceeded device limit: ${deviceCount}/${IP_DEVICE_LIMIT}`);
+    return { allowed: false, deviceCount };
+  }
+
+  return { allowed: true, deviceCount };
 }
 
 /**
@@ -147,14 +263,14 @@ export async function getFreeQuota(_store: unknown, userId: string): Promise<Fre
   const date = getTodayDate();
   const key = getQuotaKey(userId, date);
 
-  const stored = getQuotaFromStore(key);
+  const stored = await getQuotaFromStore(key);
 
   if (stored) {
     // Keep limit in sync with current VIP whitelist/env config without requiring a server restart.
     const currentLimit = getUserQuotaLimit(userId);
     if (stored.limit !== currentLimit) {
       stored.limit = currentLimit;
-      saveQuotaToStore(key, stored, 86400);
+      await saveQuotaToStore(key, stored, 86400);
       log.info(`[FreeQuota] Updated quota limit for user ${userId}: limit=${stored.limit}`);
     }
     return stored;
@@ -171,8 +287,8 @@ export async function getFreeQuota(_store: unknown, userId: string): Promise<Fre
     resetAt: getTomorrowMidnight()
   };
 
-  // 存储到内存，24小时后自动过期
-  saveQuotaToStore(key, quota, 86400);
+  // 存储，24小时后自动过期
+  await saveQuotaToStore(key, quota, 86400);
 
   log.info(`[FreeQuota] Initialized quota for user ${userId}: ${quota.used}/${quota.limit}`);
 
@@ -196,7 +312,7 @@ export async function consumeFreeQuota(_store: unknown, userId: string): Promise
 
   // 增加使用次数
   quota.used += 1;
-  saveQuotaToStore(key, quota, 86400);
+  await saveQuotaToStore(key, quota, 86400);
 
   log.info(`[FreeQuota] User ${userId} consumed quota: ${quota.used}/${quota.limit}`);
 

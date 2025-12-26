@@ -3,9 +3,10 @@ import { getFreeQuota } from '../services/paymentApi';
 
 interface FreeQuotaDisplayProps {
   deviceId: string;
+  refreshKey?: number; // 用于外部触发刷新
 }
 
-const FreeQuotaDisplay: React.FC<FreeQuotaDisplayProps> = ({ deviceId }) => {
+const FreeQuotaDisplay: React.FC<FreeQuotaDisplayProps> = ({ deviceId, refreshKey = 0 }) => {
   const [quota, setQuota] = useState<{
     remaining: number;
     used: number;
@@ -17,10 +18,10 @@ const FreeQuotaDisplay: React.FC<FreeQuotaDisplayProps> = ({ deviceId }) => {
 
   const [loading, setLoading] = useState(true);
 
-  
+
   useEffect(() => {
     loadQuota();
-  }, [deviceId]);
+  }, [deviceId, refreshKey]); // 当 refreshKey 变化时也触发刷新
 
   const loadQuota = async () => {
     try {

@@ -27,6 +27,7 @@ const App: React.FC = () => {
     remaining: number;
     limit: number;
   } | null>(null);
+  const [quotaRefreshKey, setQuotaRefreshKey] = useState<number>(0); // 用于触发额度显示刷新
   
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   
@@ -89,6 +90,8 @@ const App: React.FC = () => {
         remaining: q.remaining,
         limit: q.limit
       });
+      // 递增 key 以触发 FreeQuotaDisplay 组件刷新
+      setQuotaRefreshKey(prev => prev + 1);
     } catch {
       setQuotaInfo(null);
     }
@@ -602,10 +605,10 @@ const App: React.FC = () => {
       {/* Main Layout - Three Column */}
       <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 pb-20 md:pb-0">
 
-        {/* Left Sidebar: Settings Parameters */}
-        <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
+        {/* Left Sidebar: Settings Parameters - 手机端排第2 */}
+        <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6 order-2 lg:order-1">
            {/* Free Quota Display (only in free mode) */}
-           {deviceId && <FreeQuotaDisplay deviceId={deviceId} />}
+           {deviceId && <FreeQuotaDisplay deviceId={deviceId} refreshKey={quotaRefreshKey} />}
 
            {/* Settings Panel */}
            <div className="bg-white border-4 border-black p-4 rounded-lg pop-shadow space-y-6">
@@ -826,8 +829,8 @@ const App: React.FC = () => {
            </div>
         </div>
 
-        {/* Middle Column: Sticker Grid */}
-        <div className="lg:col-span-6">
+        {/* Middle Column: Sticker Grid - 手机端排最后 */}
+        <div className="lg:col-span-6 order-3 lg:order-2">
            <StickerGrid
              generatedStickers={Object.keys(generatedStickers).reduce((acc, key) => {
                if (key.endsWith(`_${currentStyle}`)) {
@@ -845,8 +848,8 @@ const App: React.FC = () => {
            />
         </div>
 
-        {/* Right Sidebar: Upload & Actions */}
-        <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
+        {/* Right Sidebar: Upload & Actions - 手机端排第1 */}
+        <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6 order-1 lg:order-3">
            <ReferenceUploader onImageSelected={handleImageChange} />
 
            {/* Actions */}

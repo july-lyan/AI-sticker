@@ -4,7 +4,7 @@ import { fail, ok } from '../utils/http.js';
 import { generateStickerGrid, generateStickerImage } from '../services/gemini.js';
 import { getPaymentStore } from '../utils/paymentStore.js';
 import { assertPaymentTokenValid } from '../services/payment.js';
-import { consumeFreeQuota, hasFreeQuota } from '../services/freeQuota.js';
+import { consumeFreeQuota, hasFreeQuota, checkIpDeviceLimit } from '../services/freeQuota.js';
 import { PAYMENT_MODE } from '../utils/env.js';
 import { StyleIdSchema } from '../constants/styles.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -30,6 +30,20 @@ router.post(
 
     const store = await getPaymentStore();
     const userId = req.userId!;
+    const ip = req.ip || 'unknown';
+    const deviceId = req.deviceId || '';
+
+    // IP 防刷检测：同一 IP 下不同设备过多时限制
+    const ipCheck = await checkIpDeviceLimit(ip, deviceId);
+    if (!ipCheck.allowed) {
+      res.status(429).json(
+        fail('IP_DEVICE_LIMIT', '该IP访问设备数过多，请明日再试', {
+          deviceCount: ipCheck.deviceCount,
+          suggestion: '如有疑问请联系客服'
+        })
+      );
+      return;
+    }
 
     // Check payment/quota based on mode
     if (PAYMENT_MODE === 'free') {
@@ -100,6 +114,20 @@ router.post(
 
     const store = await getPaymentStore();
     const userId = req.userId!;
+    const ip = req.ip || 'unknown';
+    const deviceId = req.deviceId || '';
+
+    // IP 防刷检测：同一 IP 下不同设备过多时限制
+    const ipCheck = await checkIpDeviceLimit(ip, deviceId);
+    if (!ipCheck.allowed) {
+      res.status(429).json(
+        fail('IP_DEVICE_LIMIT', '该IP访问设备数过多，请明日再试', {
+          deviceCount: ipCheck.deviceCount,
+          suggestion: '如有疑问请联系客服'
+        })
+      );
+      return;
+    }
 
     // Check payment/quota based on mode (same as grid generation)
     if (PAYMENT_MODE === 'free') {
