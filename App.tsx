@@ -628,8 +628,8 @@ const App: React.FC = () => {
       {/* Main Layout - Three Column */}
       <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 pb-20 md:pb-0">
 
-        {/* Left Sidebar: Settings Parameters - 手机端排第2 */}
-        <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6 order-2 lg:order-1">
+        {/* Left Sidebar: Settings Parameters */}
+        <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
            {/* Free Quota Display (only in free mode) */}
            {deviceId && <FreeQuotaDisplay deviceId={deviceId} refreshKey={quotaRefreshKey} />}
 
@@ -852,8 +852,8 @@ const App: React.FC = () => {
            </div>
         </div>
 
-        {/* Middle Column: Sticker Grid - 手机端排最后 */}
-        <div className="lg:col-span-6 order-3 lg:order-2">
+        {/* Middle Column: Sticker Grid */}
+        <div className="lg:col-span-6">
            <StickerGrid
              generatedStickers={Object.keys(generatedStickers).reduce((acc, key) => {
                if (key.endsWith(`_${currentStyle}`)) {
@@ -871,8 +871,8 @@ const App: React.FC = () => {
            />
         </div>
 
-        {/* Right Sidebar: Upload & Actions - 手机端排第1 */}
-        <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6 order-1 lg:order-3">
+        {/* Right Sidebar: Upload & Actions */}
+        <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
            <ReferenceUploader onImageSelected={handleImageChange} />
 
            {/* Actions */}
