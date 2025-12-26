@@ -72,12 +72,29 @@ const App: React.FC = () => {
 
   // Device ID (used for backend user identification)
   useEffect(() => {
-    let id = localStorage.getItem('deviceId');
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem('deviceId', id);
+    try {
+      let id = localStorage.getItem('deviceId');
+      if (!id) {
+        // crypto.randomUUID() 在微信浏览器等环境可能不支持，添加 fallback
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+          id = crypto.randomUUID();
+        } else {
+          // Fallback: 生成类 UUID 格式的随机字符串
+          id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            const v = c === 'x' ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          });
+        }
+        localStorage.setItem('deviceId', id);
+      }
+      setDeviceId(id);
+    } catch (e) {
+      // localStorage 不可用时（如隐私模式），使用临时 ID
+      console.warn('localStorage not available, using session ID:', e);
+      const sessionId = 'session-' + Math.random().toString(36).substring(2, 15);
+      setDeviceId(sessionId);
     }
-    setDeviceId(id);
   }, []);
 
   const refreshQuota = useCallback(async () => {
