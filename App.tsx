@@ -234,7 +234,13 @@ const App: React.FC = () => {
       throw new Error('设备ID未就绪，请刷新页面重试');
     }
 
-    if (quotaInfo?.isFreeMode) {
+    // 等待 quotaInfo 加载完成
+    if (quotaInfo === null) {
+      throw new Error('正在加载额度信息，请稍后再试');
+    }
+
+    // 免费模式：检查额度
+    if (quotaInfo.isFreeMode) {
       if (quotaInfo.remaining <= 0) {
         throw new Error('今日免费次数已用完，请明天再来');
       }
