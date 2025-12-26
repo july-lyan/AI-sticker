@@ -1,0 +1,7 @@
+# 禁止爬虫访问 API 路径
+User-agent: *
+Disallow: /api/
+Disallow: /payment/
+
+# 允许访问健康检查
+Allow: /health

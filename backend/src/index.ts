@@ -1,15 +1,21 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import { ALLOWED_ORIGINS, PORT, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS, isDev } from './utils/env.js';
 import { log } from './utils/logger.js';
 import { identifyUser } from './middleware/auth.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { rateLimit } from './middleware/rateLimit.js';
+import { blockBotsFromApi } from './middleware/botDetector.js';
 import characterRouter from './routes/character.js';
 import stickerRouter from './routes/sticker.js';
 import paymentRouter from './routes/payment.js';
 import { fail } from './utils/http.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.set('trust proxy', 1);
@@ -39,7 +45,16 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use(requestLogger);
 
+// Serve robots.txt to guide crawlers
+app.get('/robots.txt', (_req, res) => {
+  res.type('text/plain');
+  res.sendFile(path.join(__dirname, '..', 'public', 'robots.txt'));
+});
+
 app.get('/health', (_req, res) => res.json({ ok: true }));
+
+// Block bots from accessing API routes
+app.use(blockBotsFromApi);
 
 // Identify user for all API routes, then apply rate limits.
 app.use('/api', identifyUser);
