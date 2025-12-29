@@ -17,6 +17,7 @@ const FreeQuotaDisplay: React.FC<FreeQuotaDisplayProps> = ({ deviceId, refreshKe
   } | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -24,18 +25,50 @@ const FreeQuotaDisplay: React.FC<FreeQuotaDisplayProps> = ({ deviceId, refreshKe
   }, [deviceId, refreshKey]); // 当 refreshKey 变化时也触发刷新
 
   const loadQuota = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const data = await getFreeQuota(deviceId);
       setQuota(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load quota:', error);
+      setError(error.message || '加载额度信息失败');
     } finally {
       setLoading(false);
     }
   };
 
+  // 加载骨架屏
   if (loading) {
-    return null;
+    return (
+      <div className="w-full p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-4 border-black pop-shadow rounded-lg mb-4 animate-pulse">
+        <div className="flex items-center justify-between mb-2">
+          <div className="h-4 bg-gray-300 rounded w-32"></div>
+          <div className="h-6 bg-gray-300 rounded-full w-16"></div>
+        </div>
+        <div className="h-3 bg-gray-300 rounded w-full mb-2"></div>
+        <div className="h-3 bg-gray-300 rounded w-full mb-2"></div>
+        <div className="h-2 bg-gray-300 rounded w-3/4"></div>
+      </div>
+    );
+  }
+
+  // 错误状态
+  if (error) {
+    return (
+      <div className="w-full p-4 bg-red-50 border-4 border-red-500 pop-shadow rounded-lg mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-black uppercase text-red-700">⚠️ 加载失败</h3>
+          <button
+            onClick={loadQuota}
+            className="text-xs bg-red-500 text-white px-2 py-1 rounded font-bold hover:bg-red-600"
+          >
+            重试
+          </button>
+        </div>
+        <p className="text-xs text-red-600">{error}</p>
+      </div>
+    );
   }
 
   if (!quota || !quota.isFreeMode) {

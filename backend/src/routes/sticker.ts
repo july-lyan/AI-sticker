@@ -4,10 +4,12 @@ import { fail, ok } from '../utils/http.js';
 import { generateStickerGrid, generateStickerImage } from '../services/gemini.js';
 import { getPaymentStore } from '../utils/paymentStore.js';
 import { assertPaymentTokenValid } from '../services/payment.js';
-import { consumeFreeQuota, hasFreeQuota, checkIpDeviceLimit } from '../services/freeQuota.js';
+import { consumeFreeQuota, hasFreeQuota, checkIpDeviceLimit, refundFreeQuota } from '../services/freeQuota.js';
 import { PAYMENT_MODE } from '../utils/env.js';
 import { StyleIdSchema } from '../constants/styles.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { trackUniqueDevice } from '../services/usageMetrics.js';
+import { log } from '../utils/logger.js';
 
 const router = Router();
 
@@ -84,15 +86,32 @@ router.post(
     const { characterDNA, prompts, style, referenceImage } = parsed.data;
     const isSlaveBatch = Boolean(parsed.data.isSlave);
 
-    const gridImage = await generateStickerGrid({
-      referenceImageBase64: referenceImage,
-      characterDescription: characterDNA,
-      prompts: prompts.map((p) => p.prompt),
-      styleId: style,
-      isSlaveBatch
-    });
+    // Track if quota was consumed (for potential refund)
+    let quotaConsumed = false;
+    if (PAYMENT_MODE === 'free') {
+      quotaConsumed = true;
+    }
 
-    res.json(ok({ gridImage }));
+    try {
+      const gridImage = await generateStickerGrid({
+        referenceImageBase64: referenceImage,
+        characterDescription: characterDNA,
+        prompts: prompts.map((p) => p.prompt),
+        styleId: style,
+        isSlaveBatch
+      });
+
+      trackUniqueDevice(deviceId).catch((err) => log.error('[UsageMetrics] trackUniqueDevice error:', err));
+      res.json(ok({ gridImage }));
+    } catch (error: any) {
+      // Refund quota if generation failed
+      if (quotaConsumed) {
+        await refundFreeQuota(store, userId);
+      }
+
+      // Re-throw to be handled by asyncHandler
+      throw error;
+    }
   })
 );
 
@@ -162,14 +181,32 @@ router.post(
     }
 
     const { characterDNA, prompt, style, referenceImage } = parsed.data;
-    const image = await generateStickerImage({
-      referenceImageBase64: referenceImage,
-      characterDescription: characterDNA,
-      promptDetail: prompt,
-      styleId: style
-    });
 
-    res.json(ok({ image }));
+    // Track if quota was consumed (for potential refund)
+    let quotaConsumed = false;
+    if (PAYMENT_MODE === 'free') {
+      quotaConsumed = true;
+    }
+
+    try {
+      const image = await generateStickerImage({
+        referenceImageBase64: referenceImage,
+        characterDescription: characterDNA,
+        promptDetail: prompt,
+        styleId: style
+      });
+
+      trackUniqueDevice(deviceId).catch((err) => log.error('[UsageMetrics] trackUniqueDevice error:', err));
+      res.json(ok({ image }));
+    } catch (error: any) {
+      // Refund quota if generation failed
+      if (quotaConsumed) {
+        await refundFreeQuota(store, userId);
+      }
+
+      // Re-throw to be handled by asyncHandler
+      throw error;
+    }
   })
 );
 

@@ -12,6 +12,7 @@ import { blockBotsFromApi } from './middleware/botDetector.js';
 import characterRouter from './routes/character.js';
 import stickerRouter from './routes/sticker.js';
 import paymentRouter from './routes/payment.js';
+import adminRouter from './routes/admin.js';
 import { fail } from './utils/http.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -55,6 +56,16 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 
 // Block bots from accessing API routes
 app.use(blockBotsFromApi);
+
+// Admin routes (protected by X-Admin-Token)
+app.use(
+  '/api/admin',
+  rateLimit({
+    windowMs: 60_000,
+    max: 30
+  })
+);
+app.use('/api/admin', adminRouter);
 
 // Identify user for all API routes, then apply rate limits.
 app.use('/api', identifyUser);

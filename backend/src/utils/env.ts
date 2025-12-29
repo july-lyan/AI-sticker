@@ -21,6 +21,12 @@ export const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
   .map((s) => s.trim())
   .filter(Boolean);
 
+// Admin endpoints protection
+export const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+
+// Usage metrics (cumulative unique devices)
+export const USAGE_UNIQUE_DEVICES_KEY = process.env.USAGE_UNIQUE_DEVICES_KEY || 'usage:unique_devices:v1';
+
 // Rate limiting (in-memory, per instance)
 export const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS || 60_000);
 export const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX || 60);

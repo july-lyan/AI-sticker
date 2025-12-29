@@ -334,3 +334,27 @@ export async function getRemainingQuota(_store: unknown, userId: string): Promis
   const quota = await getFreeQuota(null, userId);
   return Math.max(0, quota.limit - quota.used);
 }
+
+/**
+ * 返还一次免费额度（用于失败回滚）
+ * @returns 成功返回true，失败返回false
+ */
+export async function refundFreeQuota(_store: unknown, userId: string): Promise<boolean> {
+  const date = getTodayDate();
+  const key = getQuotaKey(userId, date);
+
+  const quota = await getFreeQuota(null, userId);
+
+  if (quota.used <= 0) {
+    log.warn(`[FreeQuota] Cannot refund for user ${userId}: used=${quota.used}`);
+    return false;
+  }
+
+  // 减少使用次数
+  quota.used -= 1;
+  await saveQuotaToStore(key, quota, 86400);
+
+  log.info(`[FreeQuota] Refunded quota for user ${userId}: ${quota.used}/${quota.limit}`);
+
+  return true;
+}

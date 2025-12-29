@@ -9,7 +9,8 @@ export const analyzeCharacter = async (
   const data = await postJson<{ characterDNA: string }>(
     '/api/analyze-character',
     { referenceImage: referenceImageBase64, category: userCategoryLabel },
-    { 'X-Device-Id': localStorage.getItem('deviceId') || '' }
+    { 'X-Device-Id': localStorage.getItem('deviceId') || '' },
+    60000 // 60秒超时（分析可能需要较长时间）
   );
   return data.characterDNA;
 };
@@ -32,7 +33,8 @@ export const generateStickerImage = async (
     {
       'X-Device-Id': localStorage.getItem('deviceId') || '',
       'X-Payment-Token': paymentToken
-    }
+    },
+    120000 // 120秒超时（图片生成需要较长时间）
   );
   return data.image;
 };
@@ -57,7 +59,8 @@ export const generateStickerGrid = async (
     {
       'X-Device-Id': localStorage.getItem('deviceId') || '',
       'X-Payment-Token': paymentToken
-    }
+    },
+    120000 // 120秒超时（批量生成需要较长时间）
   );
 
   return data.gridImage;

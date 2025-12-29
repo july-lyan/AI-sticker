@@ -55,6 +55,142 @@ export const STYLES: Record<StickerStyleId, StyleDefinition> = {
   }
 };
 
+// ========== 2026 新年专题 Prompts (马年) ==========
+
+const NEW_YEAR_FEMALE_PROMPTS: StickerPrompt[] = [
+  { id: 'f_ny_1', label: '新年拜年', prompt: '角色穿着红色新年装/旗袍，双手抱拳作揖拜年，笑容甜美，背景有红灯笼和烟花, text bubble: "新年快乐"' },
+  { id: 'f_ny_2', label: '放烟花', prompt: '角色仰望天空看绽放的烟花，双手举着小烟花棒，表情惊喜开心，背景是璀璨烟花, text bubble: "好美"' },
+  { id: 'f_ny_3', label: '许愿', prompt: '角色双手合十闭眼许愿，背景是星空和"2026"字样，神情虔诚美好, text bubble: "心想事成"' },
+  { id: 'f_ny_4', label: '写贺卡', prompt: '角色坐在桌前认真写贺卡/春联，手拿毛笔，桌上有红纸和墨水, text bubble: "送福"' },
+  { id: 'f_ny_5', label: '发红包', prompt: '角色手持厚厚的红包，笑着递出去，表情慷慨大方, text bubble: "恭喜发财"' },
+  { id: 'f_ny_6', label: '团圆饭', prompt: '角色坐在圆桌旁，拿着筷子开心吃年夜饭，桌上摆满丰盛菜肴, text bubble: "开饭啦"' },
+  { id: 'f_ny_7', label: '守岁', prompt: '角色穿着睡衣，困得眼皮打架但还在熬夜，旁边是零食和手机，时钟显示23:59, text bubble: "快到了"' },
+  { id: 'f_ny_8', label: '新年暴富', prompt: '角色兴奋地举着"2026暴富"的牌子，周围飘着金币和红包, text bubble: "暴富"' },
+  { id: 'f_ny_9', label: '马年吉祥', prompt: '角色抱着可爱的小马玩偶（2026马年），穿着喜庆服装，笑容灿烂, ONLY ONE text bubble: "马年吉祥"' },
+  { id: 'f_ny_10', label: '跨年倒计时', prompt: '角色看着倒计时"2026"的大屏幕，双手举高欢呼，背景烟花绽放, text bubble: "3-2-1"' },
+  { id: 'f_ny_11', label: '挂灯笼', prompt: '角色踮脚挂红灯笼，表情认真可爱，周围挂满红灯笼和彩带, text bubble: "喜气洋洋"' },
+  { id: 'f_ny_12', label: '迎曙光', prompt: '角色站在阳台/海边迎接新年第一缕阳光，表情充满希望，手举"2026"牌子, text bubble: "新年新气象"' },
+];
+
+const NEW_YEAR_MALE_PROMPTS: StickerPrompt[] = [
+  { id: 'm_ny_1', label: '新年拜年', prompt: '角色穿着红色唐装/新年装，双手抱拳作揖拜年，表情喜庆，背景有红灯笼, text bubble: "恭喜发财"' },
+  { id: 'm_ny_2', label: '放烟花', prompt: '角色点燃大烟花，动作潇洒，背景是绚烂的烟花夜空, text bubble: "放！"' },
+  { id: 'm_ny_3', label: '许愿', prompt: '角色双手合十许愿，背景是星空和"2026"，表情虔诚, text bubble: "目标达成"' },
+  { id: 'm_ny_4', label: '贴春联', prompt: '角色踩在凳子上贴春联，手拿胶水，表情认真, text bubble: "福到"' },
+  { id: 'm_ny_5', label: '发红包', prompt: '角色土豪般撒红包，周围红包飞舞，表情豪气, text bubble: "都有"' },
+  { id: 'm_ny_6', label: '团圆饭', prompt: '角色大口吃年夜饭，碗里堆满肉，满脸幸福, text bubble: "真香"' },
+  { id: 'm_ny_7', label: '守岁', prompt: '角色困得东倒西歪但还在打游戏，旁边是泡面和可乐，电视放着春晚, text bubble: "再等等"' },
+  { id: 'm_ny_8', label: '新年暴富', prompt: '角色兴奋地举着"2026暴富"牌子跳起来，周围金光闪闪, text bubble: "发财"' },
+  { id: 'm_ny_9', label: '马年大吉', prompt: '角色比出胜利手势，旁边是可爱的金色小马，喜气洋洋, text bubble: "马年大吉"' },
+  { id: 'm_ny_10', label: '跨年倒计时', prompt: '角色激动地看着倒计时，双手高举欢呼，背景烟花四射, text bubble: "新年到"' },
+  { id: 'm_ny_11', label: '开门红', prompt: '角色推开大门，门外是金光和红包雨，表情惊喜, text bubble: "开门红"' },
+  { id: 'm_ny_12', label: '迎曙光', prompt: '角色站在山顶迎接新年日出，张开双臂，表情充满力量, text bubble: "冲2026"' },
+];
+
+const NEW_YEAR_CHILD_PROMPTS: StickerPrompt[] = [
+  { id: 'c_ny_1', label: '拜年', prompt: '角色穿着红色唐装，双手抱拳可爱地拜年，脸蛋红扑扑, text bubble: "新年好"' },
+  { id: 'c_ny_2', label: '看烟花', prompt: '角色仰头看烟花，眼睛里映着烟花的光芒，表情惊叹, text bubble: "哇"' },
+  { id: 'c_ny_3', label: '收红包', prompt: '角色双手接红包，眼睛发光，表情兴奋, text bubble: "谢谢"' },
+  { id: 'c_ny_4', label: '吃糖葫芦', prompt: '角色举着糖葫芦开心地吃，嘴巴沾满糖，背景有红灯笼, text bubble: "甜甜"' },
+  { id: 'c_ny_5', label: '团圆饭', prompt: '角色坐在高椅上吃年夜饭，腮帮子鼓鼓的，很满足, text bubble: "好吃"' },
+  { id: 'c_ny_6', label: '放小烟花', prompt: '角色小心翼翼地举着小烟花棒，烟花在闪烁，表情兴奋又紧张, text bubble: "亮亮"' },
+  { id: 'c_ny_7', label: '新年愿望', prompt: '角色闭眼许愿，双手合十，背景是闪闪星空, text bubble: "愿望"' },
+  { id: 'c_ny_8', label: '穿新衣', prompt: '角色穿着崭新的红色新年装，开心地转圈展示, text bubble: "好看吗"' },
+  { id: 'c_ny_9', label: '数红包', prompt: '角色坐在床上认真数红包里的钱，表情专注, text bubble: "1-2-3"' },
+  { id: 'c_ny_10', label: '玩马灯', prompt: '角色提着可爱的马形灯笼，蹦蹦跳跳, text bubble: "马马"' },
+];
+
+const NEW_YEAR_ELDER_PROMPTS: StickerPrompt[] = [
+  { id: 'e_ny_1', label: '发红包', prompt: '角色慈祥地发红包，手里一叠红包，笑容满面, text bubble: "来拿红包"' },
+  { id: 'e_ny_2', label: '写春联', prompt: '角色戴着老花镜写春联，毛笔字龙飞凤舞, text bubble: "福"' },
+  { id: 'e_ny_3', label: '团圆饭', prompt: '角色坐在主位，看着满桌儿孙，表情欣慰幸福, text bubble: "团圆"' },
+  { id: 'e_ny_4', label: '看春晚', prompt: '角色坐在沙发上看春晚，手里嗑瓜子，很惬意, text bubble: "精彩"' },
+  { id: 'e_ny_5', label: '包饺子', prompt: '角色熟练地包饺子，旁边已包好一排整齐的饺子, text bubble: "包饺子"' },
+  { id: 'e_ny_6', label: '新年祝福', prompt: '角色慈祥地笑着，双手合十送祝福, text bubble: "身体健康"' },
+  { id: 'e_ny_7', label: '守岁', prompt: '角色披着毯子熬夜守岁，虽然困但很开心, text bubble: "守岁"' },
+  { id: 'e_ny_8', label: '接财神', prompt: '角色虔诚地迎接财神，双手合十, text bubble: "财源广进"' },
+  { id: 'e_ny_9', label: '逗孙子', prompt: '角色逗孙子孙女玩红包，其乐融融, text bubble: "乖孙"' },
+  { id: 'e_ny_10', label: '全家福', prompt: '角色坐在中间，全家合影，笑得合不拢嘴, text bubble: "茄子"' },
+];
+
+const NEW_YEAR_PET_PROMPTS: StickerPrompt[] = [
+  { id: 'p_ny_1', label: '新年装', prompt: '宠物穿着红色新年小衣服，戴着红色小帽，呆萌可爱, text bubble: "喵/汪"' },
+  { id: 'p_ny_2', label: '抢红包', prompt: '宠物叼着红包跑，一脸得意, text bubble: "是我的"' },
+  { id: 'p_ny_3', label: '看烟花', prompt: '宠物看着烟花有点害怕，缩成一团，但很好奇, text bubble: "怕怕"' },
+  { id: 'p_ny_4', label: '吃年夜饭', prompt: '宠物也有自己的小碗年夜饭，吃得很香, text bubble: "加鸡腿"' },
+  { id: 'p_ny_5', label: '拜年', prompt: '宠物作揖拜年的姿势（前爪并拢），超级可爱, text bubble: "恭喜发财"' },
+  { id: 'p_ny_6', label: '玩灯笼', prompt: '宠物玩着红灯笼，被灯笼绳子缠住，很呆萌, text bubble: "救命"' },
+  { id: 'p_ny_7', label: '守岁', prompt: '宠物困得打哈欠但还在陪主人守岁, text bubble: "困..."' },
+  { id: 'p_ny_8', label: '福气满满', prompt: '宠物旁边贴着"福"字，一脸福气, text bubble: "福"' },
+  { id: 'p_ny_9', label: '马年萌宠', prompt: '宠物戴着马形头饰，超级可爱呆萌, text bubble: "马年好"' },
+  { id: 'p_ny_10', label: '新年愿望', prompt: '宠物对着星空闭眼，仿佛在许愿, text bubble: "加餐"' },
+];
+
+const NEW_YEAR_COUPLE_PROMPTS: StickerPrompt[] = [
+  { id: 'cp_ny_1', label: '一起拜年', prompt: '两人穿着红色情侣新年装，一起作揖拜年, text bubble: "新年快乐"' },
+  { id: 'cp_ny_2', label: '看烟花', prompt: '两人依偎在一起看烟花，浪漫温馨, text bubble: "好美"' },
+  { id: 'cp_ny_3', label: '跨年吻', prompt: '两人在跨年倒计时后亲吻，背景烟花绽放, text bubble: "爱你"' },
+  { id: 'cp_ny_4', label: '包饺子', prompt: '两人一起包饺子，面粉弄得到处都是但很开心, text bubble: "合作"' },
+  { id: 'cp_ny_5', label: '发红包', prompt: '一人给另一人发红包，收的人眼睛发光, text bubble: "收下"' },
+  { id: 'cp_ny_6', label: '年夜饭', prompt: '两人甜蜜地吃年夜饭，互相夹菜, text bubble: "吃这个"' },
+  { id: 'cp_ny_7', label: '守岁', prompt: '两人依偎在一起守岁看春晚，温馨甜蜜, text bubble: "陪你"' },
+  { id: 'cp_ny_8', label: '新年愿望', prompt: '两人一起许新年愿望，双手合十, text bubble: "一起"' },
+  { id: 'cp_ny_9', label: '贴春联', prompt: '一人扶梯子，一人贴春联，配合默契, text bubble: "正了"' },
+  { id: 'cp_ny_10', label: '马年吉祥', prompt: '两人比心，背景是马年吉祥物和红灯笼, text bubble: "马年大吉"' },
+];
+
+const NEW_YEAR_DUO_PROMPTS: StickerPrompt[] = [
+  { id: 'd_ny_1', label: '一起拜年', prompt: '两人穿着新年装一起作揖拜年，表情喜庆, text bubble: "新年好"' },
+  { id: 'd_ny_2', label: '放烟花', prompt: '两人一起放烟花，兴奋地欢呼, text bubble: "点火"' },
+  { id: 'd_ny_3', label: '干杯', prompt: '两人举杯跨年干杯，开怀大笑, text bubble: "干杯"' },
+  { id: 'd_ny_4', label: '抢红包', prompt: '两人低头抢手机红包，表情紧张刺激, text bubble: "抢到了"' },
+  { id: 'd_ny_5', label: '年夜饭', prompt: '两人一起吃年夜饭火锅，吃得很香, text bubble: "真香"' },
+  { id: 'd_ny_6', label: '守岁', prompt: '两人一起打游戏守岁，精神奕奕, text bubble: "不困"' },
+  { id: 'd_ny_7', label: '合影', prompt: '两人在红灯笼下合影，比耶, text bubble: "茄子"' },
+  { id: 'd_ny_8', label: '新年暴富', prompt: '两人一起举"暴富"牌子，眼睛发光, text bubble: "发财"' },
+  { id: 'd_ny_9', label: '跨年倒计时', prompt: '两人激动地看着倒计时大屏幕，高举双手, text bubble: "3-2-1"' },
+  { id: 'd_ny_10', label: '许愿', prompt: '两人一起对着星空许愿, text bubble: "愿望成真"' },
+];
+
+const NEW_YEAR_FAMILY_PROMPTS: StickerPrompt[] = [
+  { id: 'fam_ny_1', label: '全家福', prompt: '一家人穿着红色新年装整齐合影，喜气洋洋, text bubble: "茄子"' },
+  { id: 'fam_ny_2', label: '团圆饭', prompt: '一家人围坐圆桌吃年夜饭，其乐融融, text bubble: "团圆"' },
+  { id: 'fam_ny_3', label: '发红包', prompt: '长辈给晚辈发红包，晚辈开心地接过, text bubble: "谢谢"' },
+  { id: 'fam_ny_4', label: '包饺子', prompt: '一家人一起包饺子，大人教小孩，温馨有爱, text bubble: "包起来"' },
+  { id: 'fam_ny_5', label: '看春晚', prompt: '一家人窝在沙发上看春晚，嗑瓜子, text bubble: "好看"' },
+  { id: 'fam_ny_6', label: '放烟花', prompt: '一家人一起在院子放烟花，孩子被举起看, text bubble: "好漂亮"' },
+  { id: 'fam_ny_7', label: '守岁', prompt: '一家人围在一起守岁聊天，温馨幸福, text bubble: "守岁"' },
+  { id: 'fam_ny_8', label: '贴春联', prompt: '一家人一起贴春联挂灯笼，忙碌喜庆, text bubble: "福到"' },
+  { id: 'fam_ny_9', label: '拜年', prompt: '一家人整齐作揖拜年，喜气洋洋, text bubble: "新年好"' },
+  { id: 'fam_ny_10', label: '新年愿望', prompt: '一家人一起对着星空许愿, text bubble: "阖家幸福"' },
+];
+
+const NEW_YEAR_HUMAN_PET_PROMPTS: StickerPrompt[] = [
+  { id: 'hp_ny_1', label: '一起拜年', prompt: '人物和宠物都穿新年装一起拜年，超级可爱, text bubble: "新年好"' },
+  { id: 'hp_ny_2', label: '看烟花', prompt: '人物抱着宠物一起看烟花，宠物有点怕缩在怀里, text bubble: "别怕"' },
+  { id: 'hp_ny_3', label: '年夜饭', prompt: '人物和宠物各自吃年夜饭，宠物也有专属小碗, text bubble: "一起吃"' },
+  { id: 'hp_ny_4', label: '发红包', prompt: '人物给宠物"发红包"，宠物一脸懵, text bubble: "红包"' },
+  { id: 'hp_ny_5', label: '守岁', prompt: '人物和宠物一起守岁，宠物困得睁不开眼, text bubble: "坚持"' },
+  { id: 'hp_ny_6', label: '合影', prompt: '人物抱着穿新年装的宠物合影，红灯笼背景, text bubble: "茄子"' },
+  { id: 'hp_ny_7', label: '放小烟花', prompt: '人物放小烟花，宠物在旁边好奇观看, text bubble: "好看"' },
+  { id: 'hp_ny_8', label: '马年装扮', prompt: '人物给宠物戴上马年头饰，宠物无奈配合, text bubble: "萌萌哒"' },
+  { id: 'hp_ny_9', label: '收红包', prompt: '宠物叼着红包跑向人物邀功, text bubble: "给你"' },
+  { id: 'hp_ny_10', label: '新年愿望', prompt: '人物抱着宠物一起许愿, text bubble: "健康平安"' },
+];
+
+// 新年 prompts 映射表
+export const NEW_YEAR_PROMPTS: Record<StickerCategory, StickerPrompt[]> = {
+  female: NEW_YEAR_FEMALE_PROMPTS,
+  male: NEW_YEAR_MALE_PROMPTS,
+  child: NEW_YEAR_CHILD_PROMPTS,
+  elder: NEW_YEAR_ELDER_PROMPTS,
+  pet: NEW_YEAR_PET_PROMPTS,
+  couple: NEW_YEAR_COUPLE_PROMPTS,
+  duo: NEW_YEAR_DUO_PROMPTS,
+  family: NEW_YEAR_FAMILY_PROMPTS,
+  human_pet: NEW_YEAR_HUMAN_PET_PROMPTS,
+};
+
 const FEMALE_PROMPTS: StickerPrompt[] = [
   { id: 'f_1', label: '喝奶茶', prompt: '角色捧着超大杯奶茶，吸管咬在嘴里，一脸幸福的红晕, text bubble: "续命水"' },
   { id: 'f_2', label: '减肥失败', prompt: '角色一边哭一边往嘴里塞蛋糕，体重秤在旁边显示ERROR, text bubble: "明天再减"' },

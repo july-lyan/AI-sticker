@@ -8,7 +8,7 @@ import { GeneratedSticker, GenerationStatus, StickerCategory, StickerPrompt, Sti
 import { generateStickerImage, generateStickerGrid, analyzeCharacter } from './services/geminiService';
 import { getFreeQuota } from './services/paymentApi';
 import { sliceGrid2x2, removeBackgroundSmart, generateMarketingSheet } from './utils/imageProcessor';
-import { STICKER_TEMPLATES, STYLES, CUSTOM_PRESETS, generateComicStages } from './constants';
+import { STICKER_TEMPLATES, STYLES, CUSTOM_PRESETS, generateComicStages, NEW_YEAR_PROMPTS } from './constants';
 
 
 // Utility to shuffle array and pick N (Default 12 now)
@@ -45,6 +45,9 @@ const App: React.FC = () => {
 
   // 四格漫画模式：用户选择的单个表情
   const [selectedEmotion, setSelectedEmotion] = useState<string>('');
+
+  // 新年专题模式开关
+  const [newYearMode, setNewYearMode] = useState<boolean>(false);
 
   // Custom Input (保留用于向后兼容，但不再使用)
   const [customInput, setCustomInput] = useState<string>('');
@@ -138,18 +141,44 @@ const App: React.FC = () => {
 
     // 根据当前模式重新生成/清空prompts
     if (generationMode === 'random') {
-      setActivePrompts(getRandomPrompts(STICKER_TEMPLATES[cat].prompts, targetCount));
+      const pool = getPromptsPool(cat, newYearMode);
+      setActivePrompts(getRandomPrompts(pool, Math.min(targetCount, pool.length)));
     } else {
       // 自定义模式和四格漫画模式：清空等待用户选择
       setActivePrompts([]);
     }
   };
 
+  // 获取当前分类的 prompts 池（考虑新年模式）
+  const getPromptsPool = (category: StickerCategory, isNewYear: boolean): StickerPrompt[] => {
+    if (isNewYear) {
+      // 新年模式：优先使用新年 prompts，不足时补充普通 prompts
+      const nyPrompts = NEW_YEAR_PROMPTS[category] || [];
+      return nyPrompts;
+    }
+    return STICKER_TEMPLATES[category].prompts;
+  };
+
   // Re-shuffle current category
   const handleShuffle = () => {
-    const newPrompts = getRandomPrompts(STICKER_TEMPLATES[currentCategory].prompts, targetCount);
+    const pool = getPromptsPool(currentCategory, newYearMode);
+    const newPrompts = getRandomPrompts(pool, Math.min(targetCount, pool.length));
     setActivePrompts(newPrompts);
     setGeneratedStickers({});
+  };
+
+  // 切换新年模式
+  const handleNewYearModeToggle = () => {
+    const nextMode = !newYearMode;
+    setNewYearMode(nextMode);
+
+    // 如果是随机模式，立即重新生成 prompts
+    if (generationMode === 'random') {
+      const pool = getPromptsPool(currentCategory, nextMode);
+      const newPrompts = getRandomPrompts(pool, Math.min(targetCount, pool.length));
+      setActivePrompts(newPrompts);
+      setGeneratedStickers({});
+    }
   };
 
   // 修改生成数量
@@ -175,8 +204,8 @@ const App: React.FC = () => {
 
     // 随机模式下，重新生成prompts（避免累加导致重复）
     if (generationMode === 'random') {
-      const pool = STICKER_TEMPLATES[currentCategory].prompts;
-      const newPrompts = getRandomPrompts(pool, count);
+      const pool = getPromptsPool(currentCategory, newYearMode);
+      const newPrompts = getRandomPrompts(pool, Math.min(count, pool.length));
       setActivePrompts(newPrompts);
     }
   };
@@ -199,7 +228,8 @@ const App: React.FC = () => {
 
     if (mode === 'random') {
       // 随机模式：立即生成随机表情
-      const newPrompts = getRandomPrompts(STICKER_TEMPLATES[currentCategory].prompts, targetCount);
+      const pool = getPromptsPool(currentCategory, newYearMode);
+      const newPrompts = getRandomPrompts(pool, Math.min(targetCount, pool.length));
       setActivePrompts(newPrompts);
     } else if (mode === 'custom') {
       // 自定义模式：等待用户选择
@@ -237,8 +267,8 @@ const App: React.FC = () => {
         newSelection = [...prev, emotionId];
       }
 
-      // 更新activePrompts
-      const allPrompts = STICKER_TEMPLATES[currentCategory].prompts;
+      // 更新activePrompts（考虑新年模式）
+      const allPrompts = getPromptsPool(currentCategory, newYearMode);
       const selectedPrompts = allPrompts.filter(p => newSelection.includes(p.id));
       setActivePrompts(selectedPrompts);
 
@@ -750,16 +780,41 @@ const App: React.FC = () => {
                {/* 系统随机模式 */}
                {generationMode === 'random' && (
                  <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
-                   <h4 className="font-bold text-sm text-blue-700 mb-2 flex items-center gap-2">
-                     <span className="text-lg">🎲</span>
-                     系统随机模式
-                   </h4>
-                   <p className="text-xs text-blue-600 mb-3">系统将自动为你选择{targetCount}个表情</p>
+                   <div className="flex items-center justify-between mb-2">
+                     <h4 className="font-bold text-sm text-blue-700 flex items-center gap-2">
+                       <span className="text-lg">🎲</span>
+                       系统随机模式
+                     </h4>
+                     {/* 新年专题开关 */}
+                     <label className="flex items-center gap-1 cursor-pointer select-none">
+                       <input
+                         type="checkbox"
+                         checked={newYearMode}
+                         onChange={handleNewYearModeToggle}
+                         className="sr-only peer"
+                       />
+                       <div className={`relative w-9 h-5 rounded-full transition-colors ${newYearMode ? 'bg-red-500' : 'bg-gray-300'}`}>
+                         <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${newYearMode ? 'translate-x-4' : ''}`}></div>
+                       </div>
+                       <span className={`text-xs font-bold ${newYearMode ? 'text-red-600' : 'text-gray-500'}`}>
+                         🧧新年
+                       </span>
+                     </label>
+                   </div>
+                   <p className="text-xs text-blue-600 mb-3">
+                     {newYearMode
+                       ? '🎊 新年专题模式：生成马年主题表情包'
+                       : `系统将自动为你选择${targetCount}个表情`}
+                   </p>
                    <button
                      onClick={handleShuffle}
-                     className="w-full bg-blue-500 text-white px-4 py-2 rounded font-bold hover:bg-blue-600 transition-colors"
+                     className={`w-full px-4 py-2 rounded font-bold transition-colors ${
+                       newYearMode
+                         ? 'bg-red-500 text-white hover:bg-red-600'
+                         : 'bg-blue-500 text-white hover:bg-blue-600'
+                     }`}
                    >
-                     🎲 换一换 ({activePrompts.length}个表情)
+                     {newYearMode ? '🧧' : '🎲'} 换一换 ({activePrompts.length}个表情)
                    </button>
                  </div>
                )}
@@ -780,7 +835,7 @@ const App: React.FC = () => {
 
                    {/* 表情多选网格 */}
                    <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 bg-white rounded border border-green-200">
-                     {STICKER_TEMPLATES[currentCategory].prompts.map((prompt) => (
+                     {getPromptsPool(currentCategory, newYearMode).map((prompt) => (
                        <button
                          key={prompt.id}
                          onClick={() => handleCustomEmotionToggle(prompt.id)}
@@ -823,7 +878,7 @@ const App: React.FC = () => {
 
                    {/* 表情单选网格 */}
                    <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-white rounded border border-purple-200">
-                     {STICKER_TEMPLATES[currentCategory].prompts.slice(0, 12).map((prompt) => (
+                     {getPromptsPool(currentCategory, newYearMode).slice(0, 12).map((prompt) => (
                        <button
                          key={prompt.id}
                          onClick={() => handleComicEmotionSelect(prompt.label)}
