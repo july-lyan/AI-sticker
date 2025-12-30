@@ -103,6 +103,10 @@ router.get(
     const store = await getPaymentStore();
     const quota = await getFreeQuota(store, userId);
 
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Vary', 'X-Device-Id');
     res.json(
       ok({
         mode: PAYMENT_MODE,

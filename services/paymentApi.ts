@@ -53,7 +53,7 @@ export async function getFreeQuota(deviceId: string) {
     resetAt: string;
     isFreeMode: boolean;
     isVip: boolean;
-  }>('/api/payment/quota', {
+  }>(`/api/payment/quota?t=${Date.now()}`, {
     'X-Device-Id': deviceId
   });
 }
