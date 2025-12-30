@@ -28,7 +28,8 @@ router.get(
     const period = (req.query.period as string) || 'day';
 
     if (!['day', 'week', 'month'].includes(period)) {
-      return res.status(400).json(fail('INVALID_PERIOD', 'Period must be day, week, or month'));
+      res.status(400).json(fail('INVALID_PERIOD', 'Period must be day, week, or month'));
+      return;
     }
 
     // Default to last 30 days
@@ -49,4 +50,3 @@ router.get(
 );
 
 export default router;
-
