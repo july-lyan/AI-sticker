@@ -417,6 +417,10 @@ pkill -f "tsx watch" && npm run dev
 # 修改.env后会自动重启
 ```
 
+补充：
+- 本地开发使用 `backend/package.json` 的 `npm run dev` 时，已配置监听 `backend/.env` / `backend/.env.local`（以及仓库根目录的 `.env*`），修改后会自动重启并重新加载白名单。
+- 线上/生产环境修改环境变量或 `.env` 仍然需要重启进程才能生效。
+
 ---
 
 ### Q4: 用户更换网络后额度会变化吗？

@@ -25,7 +25,7 @@ export interface StickerTemplate {
   prompts: StickerPrompt[];
 }
 
-export type StickerStyleId = 'popart' | 'manga' | 'game' | 'ancient' | '3d' | 'pixel' | 'cyberpunk' | 'papercut';
+export type StickerStyleId = 'popart' | 'manga' | 'game' | 'ancient' | '3d' | 'pixel' | 'cyberpunk' | 'papercut' | 'watercolor' | 'lineart';
 
 export interface StyleDefinition {
   id: StickerStyleId;

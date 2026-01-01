@@ -21,18 +21,46 @@ interface VIPConfig {
 
 const VIP_WHITELIST: Map<string, number> = new Map();
 
+function parseVipWhitelist(raw: string): Map<string, number> {
+  const map = new Map<string, number>();
+  if (!raw.trim()) return map;
+
+  // Support common separators: "," / "，" / ";" / newlines
+  const entries = raw
+    .replaceAll('\r', '')
+    .split(/[,\n;，]+/g)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  for (const entry of entries) {
+    const withoutComment = entry.split('#')[0]?.trim() || '';
+    if (!withoutComment) continue;
+
+    // Use the last ":" as the identifier/quota separator to support IPv6 identifiers (e.g. "::1").
+    const lastColon = withoutComment.lastIndexOf(':');
+    if (lastColon <= 0 || lastColon === withoutComment.length - 1) continue;
+
+    const identifier = withoutComment.slice(0, lastColon).trim();
+    const quotaStr = withoutComment.slice(lastColon + 1).trim();
+    const quota = Number(quotaStr);
+
+    if (!identifier) continue;
+    if (!Number.isFinite(quota) || quota <= 0) continue;
+
+    map.set(identifier, quota);
+    log.info(`[FreeQuota] VIP configured: ${identifier} → ${quota} quota/day`);
+  }
+
+  return map;
+}
+
 // 解析白名单配置
-if (VIP_WHITELIST_RAW) {
-  VIP_WHITELIST_RAW.split(',').forEach((entry) => {
-    const [identifier, quotaStr] = entry.trim().split(':');
-    if (identifier && quotaStr) {
-      const quota = Number(quotaStr);
-      if (!isNaN(quota) && quota > 0) {
-        VIP_WHITELIST.set(identifier, quota);
-        log.info(`[FreeQuota] VIP configured: ${identifier} → ${quota} quota/day`);
-      }
-    }
-  });
+const parsedVipWhitelist = parseVipWhitelist(VIP_WHITELIST_RAW);
+if (VIP_WHITELIST_RAW.trim() && parsedVipWhitelist.size === 0) {
+  log.warn('[FreeQuota] VIP_WHITELIST is set but no valid entries were parsed. Check format like "id:10,ip:5".');
+}
+for (const [identifier, quota] of parsedVipWhitelist) {
+  VIP_WHITELIST.set(identifier, quota);
 }
 
 // Redis 客户端单例
@@ -64,14 +92,27 @@ async function getRedisClient(): Promise<RedisClientType | null> {
  * 匹配优先级：Device ID > IP > userId
  */
 export function isVipUser(userId: string): boolean {
+  return getVipMatchInfo(userId).isVip;
+}
+
+export function getVipMatchInfo(userId: string): { isVip: boolean; by: 'deviceId' | 'ip' | 'userId' | null; quota?: number } {
   const parts = userId.split('_');
   const ip = parts[0];
   const deviceId = parts.length > 1 ? parts[1] : '';
 
-  if (deviceId && VIP_WHITELIST.has(deviceId)) return true;
-  if (VIP_WHITELIST.has(ip)) return true;
-  if (VIP_WHITELIST.has(userId)) return true;
-  return false;
+  if (deviceId && VIP_WHITELIST.has(deviceId)) {
+    const quota = VIP_WHITELIST.get(deviceId)!;
+    return { isVip: true, by: 'deviceId', quota };
+  }
+  if (VIP_WHITELIST.has(ip)) {
+    const quota = VIP_WHITELIST.get(ip)!;
+    return { isVip: true, by: 'ip', quota };
+  }
+  if (VIP_WHITELIST.has(userId)) {
+    const quota = VIP_WHITELIST.get(userId)!;
+    return { isVip: true, by: 'userId', quota };
+  }
+  return { isVip: false, by: null };
 }
 
 /**
@@ -266,7 +307,7 @@ export async function getFreeQuota(_store: unknown, userId: string): Promise<Fre
   const stored = await getQuotaFromStore(key);
 
   if (stored) {
-    // Keep limit in sync with current VIP whitelist/env config without requiring a server restart.
+    // Keep limit in sync with current VIP whitelist/env config without requiring quota reset.
     const currentLimit = getUserQuotaLimit(userId);
     if (stored.limit !== currentLimit) {
       stored.limit = currentLimit;

@@ -4,7 +4,7 @@ import { isProduction, PAYMENT_MODE, FREE_QUOTA_PER_DAY } from '../utils/env.js'
 import { getPaymentStore } from '../utils/paymentStore.js';
 import { fail, ok } from '../utils/http.js';
 import { createPaymentOrder, markOrderPaid, verifyOrder } from '../services/payment.js';
-import { getFreeQuota, getRemainingQuota, isVipUser } from '../services/freeQuota.js';
+import { getFreeQuota, getRemainingQuota, getVipMatchInfo } from '../services/freeQuota.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
@@ -102,6 +102,7 @@ router.get(
     const userId = req.userId!;
     const store = await getPaymentStore();
     const quota = await getFreeQuota(store, userId);
+    const vip = getVipMatchInfo(userId);
 
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Pragma', 'no-cache');
@@ -115,7 +116,18 @@ router.get(
         limit: quota.limit,
         resetAt: quota.resetAt,
         isFreeMode: PAYMENT_MODE === 'free',
-        isVip: isVipUser(userId)
+        isVip: vip.isVip,
+        ...(isProduction
+          ? {}
+          : {
+              debug: {
+                ip: req.ip,
+                deviceId: req.deviceId || '',
+                userId,
+                vipMatchedBy: vip.by,
+                vipQuota: vip.quota ?? null
+              }
+            })
       })
     );
   })
