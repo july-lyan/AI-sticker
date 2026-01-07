@@ -1,5 +1,6 @@
 import React from 'react';
 import { GeneratedSticker, GenerationStatus, StickerPrompt } from '../types';
+import { getPromptLabel, getTexts } from '../i18n';
 
 interface StickerGridProps {
   prompts: StickerPrompt[];
@@ -20,6 +21,8 @@ const StickerGrid: React.FC<StickerGridProps> = ({
   hasPayment,
   hasReference
 }) => {
+  const texts = getTexts();
+
   const handleInteraction = (e: React.MouseEvent, sticker: GeneratedSticker, label: string) => {
     e.stopPropagation();
     if (!sticker.url) return;
@@ -53,13 +56,13 @@ const StickerGrid: React.FC<StickerGridProps> = ({
               className="relative bg-white border-2 md:border-4 border-black rounded-lg overflow-hidden pop-shadow hover:translate-y-[-2px] transition-transform duration-200 flex flex-col"
             >
               <div className="bg-yellow-300 border-b-2 md:border-b-4 border-black p-1 md:p-2 flex justify-between items-center">
-                <span className="font-bold text-xs md:text-sm uppercase truncate flex-1">{sticker.label}</span>
+                <span className="font-bold text-xs md:text-sm uppercase truncate flex-1">{getPromptLabel(sticker.label)}</span>
                 <span className="text-[10px] md:text-xs font-mono bg-black text-white px-1 rounded ml-1">#{sticker.id}</span>
               </div>
 
               <div
                 className="aspect-square w-full flex items-center justify-center relative p-2 group bg-white cursor-pointer"
-                onClick={(e) => isSuccess && handleInteraction(e, state, sticker.label)}
+                onClick={(e) => isSuccess && handleInteraction(e, state, getPromptLabel(sticker.label))}
                 style={{
                   backgroundImage: `
                      linear-gradient(45deg, #cbd5e1 25%, transparent 25%),
@@ -73,12 +76,12 @@ const StickerGrid: React.FC<StickerGridProps> = ({
               >
                 {isSuccess && state.url ? (
                   <>
-                    <img src={state.url} alt={sticker.label} className="w-full h-full object-contain relative z-10 touch-auto select-none" />
+                    <img src={state.url} alt={getPromptLabel(sticker.label)} className="w-full h-full object-contain relative z-10 touch-auto select-none" />
 
                     <button
-                      onClick={(e) => handleDownloadDirect(e, state, sticker.label)}
+                      onClick={(e) => handleDownloadDirect(e, state, getPromptLabel(sticker.label))}
                       className="hidden md:block absolute top-2 right-2 p-2 bg-white border-2 border-black rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-100 z-20"
-                      title="下载单张图片"
+                      title={texts.stickerDownloadSingle}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path
@@ -91,7 +94,7 @@ const StickerGrid: React.FC<StickerGridProps> = ({
                     </button>
 
                     <div className="md:hidden absolute bottom-1 right-1 text-[8px] bg-black/50 text-white px-1 rounded pointer-events-none z-10">
-                      点击查看
+                      {texts.stickerClickToView}
                     </div>
                   </>
                 ) : (
@@ -99,12 +102,12 @@ const StickerGrid: React.FC<StickerGridProps> = ({
                     {state.status === GenerationStatus.GENERATING ? (
                       <div className="flex flex-col items-center animate-pulse">
                         <div className="w-8 h-8 border-4 border-black border-t-yellow-400 rounded-full animate-spin mb-2"></div>
-                        <span className="text-xs font-bold text-gray-500">绘制中...</span>
+                        <span className="text-xs font-bold text-gray-500">{texts.stickerGenerating}</span>
                       </div>
                     ) : state.status === GenerationStatus.ERROR ? (
                       <div className="flex flex-col items-center text-red-500">
                         <span className="text-2xl mb-1">❌</span>
-                        <span className="text-[10px] font-bold leading-tight">失败</span>
+                        <span className="text-[10px] font-bold leading-tight">{texts.stickerFailed}</span>
                         <button
                           className={`mt-2 text-[10px] underline ${canRegenerate ? '' : 'opacity-40 cursor-not-allowed'}`}
                           disabled={!canRegenerate}
@@ -114,13 +117,13 @@ const StickerGrid: React.FC<StickerGridProps> = ({
                             onGenerate(sticker.id, sticker.prompt);
                           }}
                         >
-                          重试
+                          {texts.stickerRetry}
                         </button>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center opacity-30">
                         <span className="text-2xl mb-1">🎨</span>
-                        <span className="text-[10px] font-bold">待生成</span>
+                        <span className="text-[10px] font-bold">{texts.stickerPending}</span>
                       </div>
                     )}
                   </div>
@@ -148,7 +151,7 @@ const StickerGrid: React.FC<StickerGridProps> = ({
                         d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                       />
                     </svg>
-                    重绘
+                    {texts.stickerRegenerate}
                   </button>
                 </div>
               )}

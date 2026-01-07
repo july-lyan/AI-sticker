@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getFreeQuota } from '../services/paymentApi';
+import { getTexts, replacePlaceholders } from '../i18n';
 
 interface FreeQuotaDisplayProps {
   deviceId: string;
@@ -7,6 +8,7 @@ interface FreeQuotaDisplayProps {
 }
 
 const FreeQuotaDisplay: React.FC<FreeQuotaDisplayProps> = ({ deviceId, refreshKey = 0 }) => {
+  const texts = getTexts();
   const [quota, setQuota] = useState<{
     remaining: number;
     used: number;
@@ -82,32 +84,30 @@ const FreeQuotaDisplay: React.FC<FreeQuotaDisplayProps> = ({ deviceId, refreshKe
   return (
     <div className="w-full p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-4 border-black pop-shadow rounded-lg mb-4">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-black uppercase">🎁 免费体验模式</h3>
+        <h3 className="text-sm font-black uppercase">{texts.quotaTitle}</h3>
         {isExhausted ? (
           <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full font-bold border-2 border-black">
-            已用完
+            {texts.quotaExhausted}
           </span>
         ) : isLow ? (
           <span className="text-xs bg-yellow-500 text-white px-2 py-1 rounded-full font-bold border-2 border-black">
-            即将用完
+            {texts.quotaLow}
           </span>
         ) : (
           <span className="text-xs bg-green-500 text-white px-2 py-1 rounded-full font-bold border-2 border-black">
-            可用
+            {texts.quotaAvailable}
           </span>
         )}
       </div>
 
       <p className="text-[10px] text-gray-700 font-bold mb-2">
-        {quota.isVip
-          ? 'VIP 已开启：8/12 张可用（仍按每日额度扣减）'
-          : '免费模式仅支持生成 4 张（包含四格漫画），8/12 张已锁定'}
+        {quota.isVip ? texts.quotaVipDesc : texts.quotaFreeDesc}
       </p>
 
       <div className="flex items-center gap-3 mb-2">
         <div className="flex-1">
           <div className="flex justify-between text-xs mb-1">
-            <span className="font-bold">今日剩余次数</span>
+            <span className="font-bold">{texts.quotaRemaining}</span>
             <span className="font-bold">
               {quota.remaining} / {quota.limit}
             </span>
@@ -130,11 +130,11 @@ const FreeQuotaDisplay: React.FC<FreeQuotaDisplayProps> = ({ deviceId, refreshKe
       <p className="text-[10px] text-gray-600">
         {isExhausted ? (
           <>
-            今日免费次数已用完，明天 0 点自动重置。
-            <span className="font-bold text-blue-600"> 升级到付费版可无限生成！</span>
+            {texts.quotaResetTomorrow}
+            <span className="font-bold text-blue-600"> {texts.quotaUpgrade}</span>
           </>
         ) : (
-          <>每天免费生成 {quota.limit} 次，明天 0 点自动重置</>
+          <>{replacePlaceholders(texts.quotaPerDay, { limit: quota.limit })}</>
         )}
       </p>
     </div>

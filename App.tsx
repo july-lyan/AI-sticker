@@ -1,14 +1,16 @@
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import JSZip from 'jszip';
 import ReferenceUploader from './components/ReferenceUploader';
 import StickerGrid from './components/StickerGrid';
 import FreeQuotaDisplay from './components/FreeQuotaDisplay';
+import WeChatReviewPanel from './components/WeChatReviewPanel';
 import { GeneratedSticker, GenerationStatus, StickerCategory, StickerPrompt, StickerStyleId, GenerationMode } from './types';
-import { generateStickerImage, generateStickerGrid, analyzeCharacter } from './services/geminiService';
+import { generateStickerImage, generateStickerGrid, analyzeCharacter, generateReviewAssets } from './services/geminiService';
 import { getFreeQuota } from './services/paymentApi';
-import { sliceGrid2x2, removeBackgroundSmart, generateMarketingSheet } from './utils/imageProcessor';
+import { sliceGrid2x2, removeBackgroundSmart, generateMarketingSheet, resizeImage, compressImage, autoCropToSquare } from './utils/imageProcessor';
 import { STICKER_TEMPLATES, STYLES, CUSTOM_PRESETS, generateComicStages, NEW_YEAR_PROMPTS } from './constants';
+import { getTexts, replacePlaceholders, getCategoryLabel, getStyleLabel, translatePrompt } from './i18n';
 
 
 // Utility to shuffle array and pick N (Default 12 now)
@@ -18,6 +20,16 @@ const getRandomPrompts = (prompts: StickerPrompt[], count: number = 12): Sticker
 };
 
 const App: React.FC = () => {
+  // 获取多语言文本配置
+  const texts = getTexts();
+
+  const isWeChatReviewEnabled = useMemo(() => {
+    const raw = String((import.meta as any).env?.VITE_ENABLE_WECHAT_REVIEW_ASSETS ?? '')
+      .trim()
+      .toLowerCase();
+    return raw === '1' || raw === 'true' || raw === 'yes';
+  }, []);
+
   const [deviceId, setDeviceId] = useState<string>('');
   const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
   const [paymentToken, setPaymentToken] = useState<string | null>(null);
@@ -72,6 +84,19 @@ const App: React.FC = () => {
   const [previewSticker, setPreviewSticker] = useState<{url: string, label: string} | null>(null);
   // Ref to control stopping the batch generation
   const stopRef = useRef<boolean>(false);
+
+  // 微信审核资源状态
+  const [reviewAssets, setReviewAssets] = useState<{
+    banner: { url: string; status: GenerationStatus } | null;
+    cover: { url: string; status: GenerationStatus } | null;
+    icon: { url: string; status: GenerationStatus } | null;
+  }>({
+    banner: null,
+    cover: null,
+    icon: null
+  });
+  const [isGeneratingReview, setIsGeneratingReview] = useState(false);
+  const [reviewProgress, setReviewProgress] = useState<string>('');
 
   // Device ID (used for backend user identification)
   useEffect(() => {
@@ -360,11 +385,14 @@ const App: React.FC = () => {
 
       const styleConfig = STYLES[currentStyle];
 
+      // Translate prompt for Traditional Chinese users
+      const translatedPrompt = translatePrompt(prompt);
+
       const resultBase64 = await generateStickerImage(
-        token, 
-        currentRefImage, 
+        token,
+        currentRefImage,
         dna!,
-        prompt,
+        translatedPrompt,
         styleConfig
       );
 
@@ -501,11 +529,17 @@ const App: React.FC = () => {
               }
           }
 
+          // Translate prompts for Traditional Chinese users
+          const translatedBatch = apiBatch.map(p => ({
+            ...p,
+            prompt: translatePrompt(p.prompt)
+          }));
+
           const gridBase64 = await generateStickerGrid(
              token,
              currentRef,
              dna!,
-             apiBatch, // Send padded batch
+             translatedBatch, // Send translated batch
              styleConfig,
              isSlaveBatch
           );
@@ -635,6 +669,144 @@ const App: React.FC = () => {
     setPreviewSticker({ url: sticker.url, label });
   };
 
+  // ==================== 微信审核资源处理函数 ====================
+
+  const handleGenerateReviewAssets = useCallback(async () => {
+    if (!referenceImage || !characterDescription) {
+      alert('请先生成表情包以分析角色特征');
+      return;
+    }
+
+    setIsGeneratingReview(true);
+    setReviewProgress('🎨 正在生成横幅 (1/3)...');
+
+    try {
+      const token = await ensurePaid();
+
+      // 调用后端一键生成 API
+      const { banner, cover, icon } = await generateReviewAssets(
+        token,
+        referenceImage,
+        characterDescription,
+        currentStyle
+      );
+
+      // 1. 处理 Banner
+      setReviewProgress('✅ 横幅生成完成\n🎨 正在处理封面 (2/3)...');
+      const bannerResized = await resizeImage(banner, 750, 400);
+      const bannerCompressed = await compressImage(bannerResized, 400);
+      setReviewAssets(prev => ({
+        ...prev,
+        banner: { url: bannerCompressed, status: GenerationStatus.SUCCESS }
+      }));
+
+      // 2. 处理 Cover（移除背景 + 缩放 + 压缩）
+      setReviewProgress('✅ 横幅完成\n🎨 正在处理封面（移除背景）...');
+      const coverTransparent = await removeBackgroundSmart(cover);
+      const coverCropped = await autoCropToSquare(coverTransparent, {
+        targetSize: 240,
+        paddingRatio: 0.1,
+        biasY: -0.05
+      });
+      const coverResized = await resizeImage(coverCropped, 240, 240);
+      const coverCompressed = await compressImage(coverResized, 400);
+      setReviewAssets(prev => ({
+        ...prev,
+        cover: { url: coverCompressed, status: GenerationStatus.SUCCESS }
+      }));
+
+      // 3. 处理 Icon（移除背景 + 缩放 + 压缩）
+      setReviewProgress('✅ 封面完成\n🎨 正在处理图标 (3/3)...');
+      const iconTransparent = await removeBackgroundSmart(icon);
+      const iconCropped = await autoCropToSquare(iconTransparent, {
+        targetSize: 50,
+        paddingRatio: 0.05,
+        biasY: -0.25,
+        sharpen: true
+      });
+      const iconResized = await resizeImage(iconCropped, 50, 50);
+      const iconCompressed = await compressImage(iconResized, 80);
+      setReviewAssets(prev => ({
+        ...prev,
+        icon: { url: iconCompressed, status: GenerationStatus.SUCCESS }
+      }));
+
+      setReviewProgress('🎉 全部完成！');
+
+      // 刷新配额显示
+      setQuotaRefreshKey(prev => prev + 1);
+
+    } catch (error: any) {
+      console.error('审核资源生成失败:', error);
+
+      const code = error?.code || error?.data?.error || '';
+      const details = error?.data?.errorDetails || error?.data?.data?.errorDetails || '';
+      const step = error?.data?.step || error?.data?.data?.step || '';
+
+      let errorMsg = error?.message || '生成失败，请重试';
+      if (code === 'QUOTA_EXCEEDED') {
+        errorMsg = '今日免费次数已用完';
+      } else if (code === 'PAYMENT_REQUIRED' || code === 'PAYMENT_INVALID') {
+        errorMsg = '请先完成支付';
+      } else if (String(errorMsg).includes('429') || code === 'IP_DEVICE_LIMIT') {
+        errorMsg = '请求过于频繁，请稍后再试';
+      } else if (String(errorMsg).includes('Invalid response (404)')) {
+        errorMsg = '后端接口不存在（请确认后端已部署 /api/generate-review-assets）';
+      }
+
+      const debug = [step ? `step=${step}` : '', code ? `code=${code}` : '', details ? `details=${details}` : '']
+        .filter(Boolean)
+        .join(' ');
+
+      setReviewProgress(`❌ ${errorMsg}`);
+      alert(debug ? `${errorMsg}\n${debug}` : errorMsg);
+    } finally {
+      setIsGeneratingReview(false);
+    }
+  }, [referenceImage, characterDescription, currentStyle]);
+
+  const handleDownloadReviewAssets = async () => {
+    const zip = new JSZip();
+    const folder = zip.folder('wechat_review_assets');
+
+    if (reviewAssets.banner?.url && folder) {
+      const base64Data = reviewAssets.banner.url.split(',')[1];
+      folder.file('banner_750x400.png', base64Data, { base64: true });
+    }
+
+    if (reviewAssets.cover?.url && folder) {
+      const base64Data = reviewAssets.cover.url.split(',')[1];
+      folder.file('cover_240x240.png', base64Data, { base64: true });
+    }
+
+    if (reviewAssets.icon?.url && folder) {
+      const base64Data = reviewAssets.icon.url.split(',')[1];
+      folder.file('icon_50x50.png', base64Data, { base64: true });
+    }
+
+    const content = await zip.generateAsync({ type: 'blob' });
+    const url = window.URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `wechat_review_assets_${currentStyle}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
+  const handleDownloadSingleAsset = (type: 'banner' | 'cover' | 'icon') => {
+    const asset = reviewAssets[type];
+    if (!asset?.url) return;
+
+    const a = document.createElement('a');
+    a.href = asset.url;
+    a.download = `${type}_${currentStyle}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   const hasAnySuccessInView = activePrompts.some(
     p => generatedStickers[`${p.id}_${currentStyle}`]?.status === GenerationStatus.SUCCESS
   );
@@ -644,9 +816,9 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="max-w-6xl mx-auto mb-6 md:mb-8 text-center pt-4 md:pt-0">
         <h1 className="text-3xl md:text-6xl font-black italic uppercase tracking-tighter text-white drop-shadow-[4px_4px_0px_rgba(0,0,0,1)] text-stroke">
-          AI 表情包<span className="text-yellow-400">批量工场</span>
+          {texts.pageTitle}
         </h1>
-        <p className="text-gray-700 font-bold mt-2 text-sm md:text-base">上传一张参考图，自动生成全套表情</p>
+        <p className="text-gray-700 font-bold mt-2 text-sm md:text-base">{texts.pageSubtitle}</p>
       </header>
 
       {errorMsg && (
@@ -668,7 +840,7 @@ const App: React.FC = () => {
              
              {/* 1. Category */}
              <div>
-               <h3 className="font-bold mb-2 uppercase text-lg">1. 角色分类</h3>
+               <h3 className="font-bold mb-2 uppercase text-lg">{texts.categoryTitle}</h3>
                <div className="flex flex-wrap gap-2">
                   {(Object.keys(STICKER_TEMPLATES) as StickerCategory[]).map((cat) => (
                     <button
@@ -676,7 +848,7 @@ const App: React.FC = () => {
                       onClick={() => handleCategoryChange(cat)}
                       className={`flex-1 min-w-[30%] py-2 font-bold border-2 rounded text-xs md:text-sm ${currentCategory === cat ? 'bg-yellow-400 border-black' : 'bg-gray-100 border-transparent text-gray-500'}`}
                     >
-                      {STICKER_TEMPLATES[cat].label}
+                      {getCategoryLabel(cat)}
                     </button>
                   ))}
                </div>
@@ -684,7 +856,7 @@ const App: React.FC = () => {
 
              {/* 2. Style */}
              <div>
-               <h3 className="font-bold mb-2 uppercase text-lg">2. 艺术风格</h3>
+               <h3 className="font-bold mb-2 uppercase text-lg">{texts.styleTitle}</h3>
                <div className="grid grid-cols-2 gap-2">
                  {Object.values(STYLES).map((style) => (
                    <button
@@ -697,7 +869,7 @@ const App: React.FC = () => {
                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}
                      `}
                    >
-                     {style.label}
+                     {getStyleLabel(style.id)}
                    </button>
                  ))}
                </div>
@@ -705,7 +877,7 @@ const App: React.FC = () => {
 
              {/* 3. Quantity */}
              <div>
-                <h3 className="font-bold mb-2 uppercase text-lg">3. 生成数量</h3>
+                <h3 className="font-bold mb-2 uppercase text-lg">{texts.quantityTitle}</h3>
                 <div className="flex gap-2">
                   {[4, 8, 12].map(num => (
                     <button
@@ -720,7 +892,7 @@ const App: React.FC = () => {
                            : 'bg-white text-black border-gray-300'
                        }`}
                     >
-                      {num}张
+                      {num}張
                     </button>
                   ))}
                 </div>
@@ -728,7 +900,7 @@ const App: React.FC = () => {
 
              {/* 4. 生成模式选择 */}
              <div>
-               <h3 className="font-bold mb-2 uppercase text-lg">4. 生成模式</h3>
+               <h3 className="font-bold mb-2 uppercase text-lg">{texts.modeTitle}</h3>
                <div className="grid grid-cols-3 gap-2">
                  {/* 系统随机模式 */}
                  <button
@@ -740,7 +912,7 @@ const App: React.FC = () => {
                    }`}
                  >
                    <div className="text-lg mb-1">🎲</div>
-                   <div>系统随机</div>
+                   <div>{texts.modeRandom}</div>
                  </button>
 
                  {/* 自定义模式 */}
@@ -753,7 +925,7 @@ const App: React.FC = () => {
                    }`}
                  >
                    <div className="text-lg mb-1">✏️</div>
-                   <div>自定义</div>
+                   <div>{texts.modeCustom}</div>
                  </button>
 
                  {/* 四格漫画模式 (仅4张时可用) */}
@@ -769,8 +941,8 @@ const App: React.FC = () => {
                    }`}
                  >
                    <div className="text-lg mb-1">📖</div>
-                   <div>四格漫画</div>
-                   {targetCount !== 4 && <div className="text-[10px] text-gray-400 mt-1">(仅4张)</div>}
+                   <div>{texts.modeComic}</div>
+                   {targetCount !== 4 && <div className="text-[10px] text-gray-400 mt-1">{texts.modeComicOnly4}</div>}
                  </button>
                </div>
              </div>
@@ -943,7 +1115,7 @@ const App: React.FC = () => {
                    onClick={handleStop}
                    className="w-full py-3 font-black bg-red-500 text-white border-2 border-black rounded hover:bg-red-600"
                  >
-                   停止生成
+                   {texts.generateStopButton}
                  </button>
                </div>
              ) : (
@@ -971,28 +1143,28 @@ const App: React.FC = () => {
                  {generationMode === 'comic' ? (
                    selectedEmotion ? (
                      <>
-                       <div>📖 四格漫画</div>
+                       <div>{texts.generateComic}</div>
                        <div className="text-xs mt-1">{selectedEmotion}</div>
                      </>
-                   ) : '📖 请先选择表情'
+                   ) : texts.generateSelectEmotion
                  ) : generationMode === 'custom' ? (
                    selectedCustomEmotions.length === targetCount
                      ? (
                        <>
-                         <div>✨ 生成表情包</div>
-                         <div className="text-xs mt-1">{targetCount}张自定义</div>
+                         <div>{texts.generateCustom}</div>
+                         <div className="text-xs mt-1">{replacePlaceholders(texts.generateCustomCount, { count: targetCount })}</div>
                        </>
                      )
                      : (
                        <>
-                         <div>✏️ 请选择表情</div>
-                         <div className="text-xs mt-1">已选{selectedCustomEmotions.length}/{targetCount}</div>
+                         <div>{texts.generateSelectComplete}</div>
+                         <div className="text-xs mt-1">{replacePlaceholders(texts.modeCustomSelected, { selected: selectedCustomEmotions.length, total: targetCount })}</div>
                        </>
                      )
                  ) : (
                    <>
-                     <div>✨ 开始生成</div>
-                     <div className="text-xs mt-1">{activePrompts.length}张表情</div>
+                     <div>{texts.generateButton}</div>
+                     <div className="text-xs mt-1">{replacePlaceholders(texts.generateStickers, { count: activePrompts.length })}</div>
                    </>
                  )}
                </button>
@@ -1003,7 +1175,7 @@ const App: React.FC = () => {
                  onClick={handleDownloadAll}
                  className="w-full mt-4 py-2 font-bold text-sm border-2 border-black rounded bg-green-400 hover:bg-green-500 text-black transition-colors"
                >
-                 📥 打包下载 ZIP
+                 {texts.downloadZip}
                </button>
              )}
 
@@ -1013,11 +1185,28 @@ const App: React.FC = () => {
                     onClick={handleGenerateSheet}
                     className="w-full py-3 font-black text-sm uppercase bg-yellow-300 hover:bg-yellow-400 text-black border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-y-[2px] active:shadow-none"
                   >
-                     {isGeneratingSheet ? "海报生成中..." : "✨ 生成全家福 (适合手机分享)"}
+                     {isGeneratingSheet ? texts.downloadSheetGenerating : texts.downloadSheet}
                   </button>
                </div>
              )}
            </div>
+
+          {/* 微信审核资源面板 */}
+          {hasAnySuccessInView && isWeChatReviewEnabled && (
+            <WeChatReviewPanel
+              banner={reviewAssets.banner}
+              cover={reviewAssets.cover}
+              icon={reviewAssets.icon}
+              isGenerating={isGeneratingReview}
+              progress={reviewProgress}
+              onGenerate={handleGenerateReviewAssets}
+              onDownloadAll={handleDownloadReviewAssets}
+              onDownloadSingle={handleDownloadSingleAsset}
+              hasCharacterDNA={!!characterDescription}
+              quotaInfo={quotaInfo}
+              isFreeExhausted={isFreeExhausted}
+            />
+          )}
         </div>
       </main>
 
@@ -1032,25 +1221,25 @@ const App: React.FC = () => {
               ✕
             </button>
             
-            <h2 className="text-xl md:text-2xl font-black uppercase text-center mb-2">长按图片保存到相册</h2>
-            <p className="text-center text-xs text-gray-500 mb-4 font-bold">推荐：使用微信/浏览器原生"保存图片"功能</p>
+            <h2 className="text-xl md:text-2xl font-black uppercase text-center mb-2">{texts.sheetModalTitle}</h2>
+            <p className="text-center text-xs text-gray-500 mb-4 font-bold">{texts.sheetModalSubtitle}</p>
             
             <div className="border-4 border-black mb-4 bg-gray-100">
               <img src={sheetImage} alt="Marketing Sheet" className="w-full h-auto block select-none" style={{touchAction: 'none'}} />
             </div>
 
             <div className="flex gap-4">
-              <button 
+              <button
                 onClick={downloadSheet}
                 className="flex-1 py-3 bg-green-400 hover:bg-green-500 text-black font-black border-2 border-black uppercase rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transition-all hidden md:block"
               >
-                下载海报
+                {texts.sheetDownloadButton}
               </button>
-              <button 
+              <button
                 onClick={() => setShowSheetModal(false)}
                 className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 text-black font-bold border-2 border-black rounded md:hidden"
               >
-                关闭
+                {texts.sheetCloseButton}
               </button>
             </div>
           </div>

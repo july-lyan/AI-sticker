@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { getTexts } from '../i18n';
 
 interface ReferenceUploaderProps {
   onImageSelected: (base64: string | null) => void;
 }
 
 const ReferenceUploader: React.FC<ReferenceUploaderProps> = ({ onImageSelected }) => {
+  const texts = getTexts();
   const [preview, setPreview] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState<boolean>(false);
 
@@ -103,16 +105,16 @@ const ReferenceUploader: React.FC<ReferenceUploaderProps> = ({ onImageSelected }
 
   return (
     <div className="w-full p-4 bg-white border-4 border-black pop-shadow rounded-lg">
-      <h2 className="text-lg font-black uppercase mb-3 text-center">📸 上传参考图</h2>
+      <h2 className="text-lg font-black uppercase mb-3 text-center">{texts.uploadTitle}</h2>
       <p className="text-xs text-gray-600 mb-3 text-center">
-        上传人物照片（自动压缩优化）
+        {texts.uploadSubtitle}
       </p>
 
       <div className="flex flex-col items-center justify-center">
         {isCompressing ? (
           <div className="flex flex-col items-center justify-center w-full h-40 border-2 border-black border-dashed rounded-lg bg-blue-50">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mb-2"></div>
-            <p className="text-xs text-gray-600 font-bold">正在压缩图片...</p>
+            <p className="text-xs text-gray-600 font-bold">{texts.uploadCompressing}</p>
           </div>
         ) : preview ? (
           <div className="relative w-full aspect-square mb-3 border-2 border-black overflow-hidden bg-gray-100 rounded">
@@ -129,8 +131,8 @@ const ReferenceUploader: React.FC<ReferenceUploaderProps> = ({ onImageSelected }
           <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-black border-dashed rounded-lg cursor-pointer bg-blue-50 hover:bg-blue-100 transition-colors">
             <div className="flex flex-col items-center justify-center pt-4 pb-4">
               <svg className="w-8 h-8 mb-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-              <p className="mb-1 text-xs text-gray-600 font-bold">点击上传图片</p>
-              <p className="text-[10px] text-gray-500">PNG/JPG (自动压缩)</p>
+              <p className="mb-1 text-xs text-gray-600 font-bold">{texts.uploadClick}</p>
+              <p className="text-[10px] text-gray-500">{texts.uploadFormat}</p>
             </div>
             <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
           </label>
