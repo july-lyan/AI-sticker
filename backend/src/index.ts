@@ -13,7 +13,13 @@ import characterRouter from './routes/character.js';
 import stickerRouter from './routes/sticker.js';
 import paymentRouter from './routes/payment.js';
 import adminRouter from './routes/admin.js';
+import wechatReviewRouter from './routes/wechat-review.js';
 import { fail } from './utils/http.js';
+
+const enableWeChatReviewAssets = (() => {
+  const raw = (process.env.ENABLE_WECHAT_REVIEW_ASSETS || '').trim().toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'yes';
+})();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -96,6 +102,17 @@ app.use(
   })
 );
 
+// Review assets generation rate limit
+if (enableWeChatReviewAssets) {
+  app.use(
+    '/api/generate-review-assets',
+    rateLimit({
+      windowMs: 60_000,
+      max: 5 // 更严格的限制，因为一次生成3个资源
+    })
+  );
+}
+
 // Payment creation rate limit (prevent abuse)
 app.use(
   '/api/payment/create',
@@ -107,6 +124,9 @@ app.use(
 
 app.use('/api', characterRouter);
 app.use('/api', stickerRouter);
+if (enableWeChatReviewAssets) {
+  app.use('/api', wechatReviewRouter);
+}
 app.use('/api/payment', paymentRouter);
 
 app.use((err: any, _req: any, res: any, _next: any) => {

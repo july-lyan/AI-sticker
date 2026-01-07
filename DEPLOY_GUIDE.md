@@ -50,6 +50,7 @@ git push -u origin main
 | `NODE_ENV` | `production` | 生产环境 |
 | `PORT` | `8080` | 端口（Railway 会自动处理） |
 | `GEMINI_API_KEY` | `你的API密钥` | 支持多个，用逗号分隔 |
+| `GEMINI_STICKER_IMAGE_SIZE` | `512` | 表情包输出分辨率档位（越小越省 token） |
 | `PAYMENT_MODE` | `free` | 免费体验模式 |
 | `FREE_QUOTA_PER_DAY` | `3` | 每日免费次数 |
 | `ALLOWED_ORIGINS` | `https://你的前端域名.vercel.app` | 允许跨域的前端地址 |
@@ -165,6 +166,7 @@ ALLOWED_ORIGINS=https://xxx.vercel.app,https://你的自定义域名.com
 |------|------|------|
 | `NODE_ENV` | 是 | `production` |
 | `GEMINI_API_KEY` | 是 | `AIzaSy...` |
+| `GEMINI_STICKER_IMAGE_SIZE` | 否 | `512` |
 | `ALLOWED_ORIGINS` | 是 | `https://xxx.vercel.app` |
 | `PAYMENT_MODE` | 否 | `free` |
 | `FREE_QUOTA_PER_DAY` | 否 | `3` |

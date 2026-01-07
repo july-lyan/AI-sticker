@@ -117,6 +117,7 @@ npm run dev
 |--------|------|------|------|
 | `NODE_ENV` | 是 | 运行环境 | `production` |
 | `GEMINI_API_KEY` | 是 | Gemini API 密钥，多个用逗号分隔 | `key1,key2,key3` |
+| `GEMINI_STICKER_IMAGE_SIZE` | 否 | 表情包输出分辨率档位（越小越省 token） | `512` |
 | `ALLOWED_ORIGINS` | 是 | 允许跨域的前端地址 | `https://example.com` |
 | `PAYMENT_MODE` | 否 | 支付模式 | `free` |
 | `FREE_QUOTA_PER_DAY` | 否 | 每日免费次数 | `3` |

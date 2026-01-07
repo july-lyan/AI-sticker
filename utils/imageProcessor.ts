@@ -237,3 +237,238 @@ export const generateMarketingSheet = async (
     });
   });
 };
+
+// ==================== 微信审核资源图片处理 ====================
+
+/**
+ * 调整图片尺寸到精确像素
+ */
+export const resizeImage = async (
+  base64Image: string,
+  targetWidth: number,
+  targetHeight: number
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas context not available'));
+        return;
+      }
+
+      // 使用高质量缩放算法
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // 绘制缩放后的图片
+      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = (e) => {
+      console.error('Image resize failed:', e);
+      reject(e);
+    };
+    img.src = base64Image;
+  });
+};
+
+/**
+ * 压缩图片到指定文件大小以下
+ */
+export const compressImage = async (
+  base64Image: string,
+  maxSizeKB: number,
+  format: 'image/png' | 'image/jpeg' = 'image/png'
+): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(base64Image);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0);
+
+      // 尝试不同质量级别直到满足大小要求
+      let quality = 0.95;
+      let result = canvas.toDataURL(format, quality);
+
+      // base64 编码膨胀系数约为 1.37
+      const targetSize = maxSizeKB * 1024 * 1.37;
+
+      while (result.length > targetSize && quality > 0.1) {
+        quality -= 0.05;
+        result = canvas.toDataURL(format, quality);
+      }
+
+      console.log(`Compressed image: quality=${quality.toFixed(2)}, size=${(result.length / 1024).toFixed(2)}KB`);
+      resolve(result);
+    };
+    img.onerror = () => {
+      console.warn('Image compression failed, returning original');
+      resolve(base64Image);
+    };
+    img.src = base64Image;
+  });
+};
+
+type AutoCropOptions = {
+  targetSize: number;
+  alphaThreshold?: number;
+  paddingRatio?: number;
+  biasY?: number; // -1..1, negative = shift crop up
+  background?: string; // fill color for transparent padding
+  sharpen?: boolean;
+};
+
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+
+const sharpenImageData = (imgData: ImageData): ImageData => {
+  const { data, width, height } = imgData;
+  const out = new Uint8ClampedArray(data.length);
+  // simple unsharp-like kernel
+  const kernel = [
+    0, -1, 0,
+    -1, 5, -1,
+    0, -1, 0
+  ];
+
+  const idx = (x: number, y: number) => (y * width + x) * 4;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let r = 0, g = 0, b = 0, a = 0;
+      let ki = 0;
+      for (let ky = -1; ky <= 1; ky++) {
+        for (let kx = -1; kx <= 1; kx++) {
+          const sx = clamp(x + kx, 0, width - 1);
+          const sy = clamp(y + ky, 0, height - 1);
+          const wgt = kernel[ki++];
+          const p = idx(sx, sy);
+          r += data[p] * wgt;
+          g += data[p + 1] * wgt;
+          b += data[p + 2] * wgt;
+          a += data[p + 3] * wgt;
+        }
+      }
+      const p = idx(x, y);
+      out[p] = clamp(r, 0, 255);
+      out[p + 1] = clamp(g, 0, 255);
+      out[p + 2] = clamp(b, 0, 255);
+      out[p + 3] = clamp(a, 0, 255);
+    }
+  }
+
+  return new ImageData(out, width, height);
+};
+
+/**
+ * Auto-crop a transparent image to its non-transparent bounds, then fit into a square.
+ * Designed for WeChat review cover/icon so the subject fills the frame and stays readable.
+ */
+export const autoCropToSquare = async (
+  base64Image: string,
+  options: AutoCropOptions
+): Promise<string> => {
+  const {
+    targetSize,
+    alphaThreshold = 12,
+    paddingRatio = 0.12,
+    biasY = 0,
+    background = 'transparent',
+    sharpen = false
+  } = options;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const srcCanvas = document.createElement('canvas');
+      srcCanvas.width = img.width;
+      srcCanvas.height = img.height;
+      const srcCtx = srcCanvas.getContext('2d', { willReadFrequently: true });
+      if (!srcCtx) return resolve(base64Image);
+      srcCtx.drawImage(img, 0, 0);
+
+      const data = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+      const { width, height } = data;
+
+      let minX = width, minY = height, maxX = -1, maxY = -1;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const a = data.data[(y * width + x) * 4 + 3];
+          if (a > alphaThreshold) {
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+
+      // If nothing found, fall back.
+      if (maxX < minX || maxY < minY) return resolve(base64Image);
+
+      const bboxW = maxX - minX + 1;
+      const bboxH = maxY - minY + 1;
+      const pad = Math.round(Math.max(bboxW, bboxH) * paddingRatio);
+      minX = clamp(minX - pad, 0, width - 1);
+      minY = clamp(minY - pad, 0, height - 1);
+      maxX = clamp(maxX + pad, 0, width - 1);
+      maxY = clamp(maxY + pad, 0, height - 1);
+
+      const cropW = maxX - minX + 1;
+      const cropH = maxY - minY + 1;
+      const side = Math.max(cropW, cropH);
+
+      const centerX = minX + cropW / 2;
+      const centerY = minY + cropH / 2 + biasY * (side * 0.25);
+      let sx = Math.round(centerX - side / 2);
+      let sy = Math.round(centerY - side / 2);
+      sx = clamp(sx, 0, width - side);
+      sy = clamp(sy, 0, height - side);
+
+      const outCanvas = document.createElement('canvas');
+      outCanvas.width = targetSize;
+      outCanvas.height = targetSize;
+      const outCtx = outCanvas.getContext('2d');
+      if (!outCtx) return resolve(base64Image);
+
+      if (background !== 'transparent') {
+        outCtx.fillStyle = background;
+        outCtx.fillRect(0, 0, targetSize, targetSize);
+      } else {
+        outCtx.clearRect(0, 0, targetSize, targetSize);
+      }
+
+      outCtx.imageSmoothingEnabled = true;
+      outCtx.imageSmoothingQuality = 'high';
+      outCtx.drawImage(srcCanvas, sx, sy, side, side, 0, 0, targetSize, targetSize);
+
+      if (sharpen) {
+        try {
+          const outData = outCtx.getImageData(0, 0, targetSize, targetSize);
+          outCtx.putImageData(sharpenImageData(outData), 0, 0);
+        } catch {
+          // ignore
+        }
+      }
+
+      resolve(outCanvas.toDataURL('image/png'));
+    };
+    img.onerror = () => resolve(base64Image);
+    img.src = base64Image;
+  });
+};

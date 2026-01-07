@@ -65,3 +65,40 @@ export const generateStickerGrid = async (
 
   return data.gridImage;
 };
+
+// ==================== 微信审核资源生成 ====================
+
+/**
+ * 一键生成所有审核资源
+ */
+export const generateReviewAssets = async (
+  paymentToken: string,
+  referenceImageBase64: string,
+  characterDescription: string,
+  styleId: string
+): Promise<{
+  banner: string;
+  cover: string;
+  icon: string;
+  metadata: { generatedAt: string; style: string };
+}> => {
+  const data = await postJson<{
+    banner: string;
+    cover: string;
+    icon: string;
+    metadata: { generatedAt: string; style: string };
+  }>(
+    '/api/generate-review-assets',
+    {
+      characterDNA: characterDescription,
+      referenceImage: referenceImageBase64,
+      style: styleId
+    },
+    {
+      'X-Device-Id': localStorage.getItem('deviceId') || '',
+      'X-Payment-Token': paymentToken
+    },
+    180000 // 3分钟超时（生成三个资源需要较长时间）
+  );
+  return data;
+};
